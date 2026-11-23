@@ -76,13 +76,13 @@ public class UltrasFanEntity extends ZombieEntity {
     }
 
     @Override
-    protected void writeCustomDataToNbt(NbtCompound nbt) {
+    public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
         nbt.putInt("UltrasTeamColor", teamColor);
     }
 
     @Override
-    protected void readCustomDataFromNbt(NbtCompound nbt) {
+    public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
         if (nbt.contains("UltrasTeamColor")) {
             teamColor = nbt.getInt("UltrasTeamColor") & 0xFFFFFF;
