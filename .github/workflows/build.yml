@@ -60,3 +60,11 @@ jobs:
           path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.3.5.jar
           if-no-files-found: error
           retention-days: 30
+
+      - name: Upload restored project sources for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: UltrasMod-project-source
+          path: UltrasMod_Fabric_1.21.4/
+          if-no-files-found: error
+          retention-days: 7
