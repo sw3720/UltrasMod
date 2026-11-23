@@ -1,0 +1,56 @@
+name: Build UltrasMod
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Restore source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat source/source-*.b64 | head -c 21840 | base64 --decode > /tmp/UltrasMod_source.tar.gz
+          tar -tzf /tmp/UltrasMod_source.tar.gz >/dev/null
+          tar -xzf /tmp/UltrasMod_source.tar.gz -C .
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.12'
+
+      - name: Build Fabric mod
+        working-directory: UltrasMod_Fabric_1.21.4
+        run: gradle --no-daemon build
+
+      - name: Verify distributable JAR
+        working-directory: UltrasMod_Fabric_1.21.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f build/libs/ultras-mod-0.3.5.jar
+          jar tf build/libs/ultras-mod-0.3.5.jar >/dev/null
+          echo "Built: build/libs/ultras-mod-0.3.5.jar"
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: UltrasMod-Fabric-1.21.4
+          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.3.5.jar
+          if-no-files-found: error
+          retention-days: 30
