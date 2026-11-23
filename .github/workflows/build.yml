@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat source/source-*.b64 | head -c 21840 | base64 --decode > /tmp/UltrasMod_source.tar.gz
+          cat source/source-*.b64 | base64 --decode > /tmp/UltrasMod_source.tar.gz
           tar -tzf /tmp/UltrasMod_source.tar.gz >/dev/null
           tar -xzf /tmp/UltrasMod_source.tar.gz -C .
 
