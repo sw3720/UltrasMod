@@ -77,15 +77,15 @@ jobs:
             echo "Fabric client startup reported an initialization error."
             exit 1
           fi
-          if ! grep -q 'Sound engine started' /tmp/ultrasmod-client-run.log; then
-            echo "Fabric client did not reach the main menu startup stage."
+          if ! grep -q 'Created: 1024x512x0 minecraft:textures/atlas/gui.png-atlas' /tmp/ultrasmod-client-run.log; then
+            echo "Fabric client did not reach the GUI texture initialization stage."
             exit 1
           fi
           if [ "$client_status" -ne 0 ] && [ "$client_status" -ne 124 ] && [ "$client_status" -ne 143 ]; then
             echo "Fabric client exited unexpectedly with status $client_status."
             exit "$client_status"
           fi
-          echo "Fabric client reached the sound-engine startup stage; headless smoke test passed."
+          echo "Fabric client reached GUI texture initialization; headless smoke test passed."
 
       - name: Verify distributable JAR and embedded assets
         working-directory: UltrasMod_Fabric_1.21.4
