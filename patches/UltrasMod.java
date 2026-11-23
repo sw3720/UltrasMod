@@ -22,7 +22,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.sound.SoundEvents;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
 
 public class UltrasMod implements ModInitializer {
@@ -60,19 +60,29 @@ public class UltrasMod implements ModInitializer {
     public static final Item EGG_PURPLE = registerEgg("ultras_fan_spawn_egg_purple", 0x7B3FA1, 0xFFFFFF);
     public static final Item EGG_ORANGE = registerEgg("ultras_fan_spawn_egg_orange", 0xE87519, 0xFFFFFF);
 
+    public static final SoundEvent MEGAPHONE_SOUND = registerSound("megaphone_call");
+    public static final SoundEvent DRUM_SOUND = registerSound("drum_hit");
+    public static final SoundEvent CLAPPER_SOUND = registerSound("clapper");
+
     public static final Item SUPPORTER_SCARF = registerItem("supporter_scarf");
     public static final Item MEGAPHONE = registerItem("megaphone",
-            new SupporterSoundItem(SoundEvents.BLOCK_NOTE_BLOCK_DIDGERIDOO, new Item.Settings().maxCount(1)));
+            new SupporterSoundItem(MEGAPHONE_SOUND, new Item.Settings().maxCount(1)));
     public static final Item SUPPORTER_DRUM = registerItem("supporter_drum",
-            new SupporterSoundItem(SoundEvents.BLOCK_NOTE_BLOCK_BASEDRUM, new Item.Settings().maxCount(1)));
+            new SupporterSoundItem(DRUM_SOUND, new Item.Settings().maxCount(1)));
     public static final Item CLAPPER = registerItem("clapper",
-            new SupporterSoundItem(SoundEvents.BLOCK_NOTE_BLOCK_BIT, new Item.Settings().maxCount(1)));
+            new SupporterSoundItem(CLAPPER_SOUND, new Item.Settings().maxCount(1)));
     public static final Item RED_SUPPORTER_SMOKE = registerItem("red_supporter_smoke",
             new SupporterSmokeItem(new Item.Settings().maxCount(16)));
-    public static final Item DESIGN_PALETTE = registerItem("design_palette", new Item(new Item.Settings().maxCount(1)));
+    public static final Item DESIGN_PALETTE = registerItem("design_palette",
+            new Item(new Item.Settings().maxCount(1)));
 
     private static Identifier id(String path) {
         return Identifier.of(MOD_ID, path);
+    }
+
+    private static SoundEvent registerSound(String path) {
+        Identifier soundId = id(path);
+        return Registry.register(Registries.SOUND_EVENT, soundId, SoundEvent.of(soundId));
     }
 
     private static Block registerBlock(String name, Block block) {
@@ -90,7 +100,8 @@ public class UltrasMod implements ModInitializer {
     }
 
     private static Item registerEgg(String name, int teamColor, int spotColor) {
-        return registerItem(name, new UltrasFanSpawnEggItem(teamColor, spotColor, new Item.Settings().maxCount(16)));
+        return registerItem(name, new UltrasFanSpawnEggItem(
+                teamColor, spotColor, new Item.Settings().maxCount(16)));
     }
 
     @Override

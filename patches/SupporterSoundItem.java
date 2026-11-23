@@ -4,15 +4,14 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 
 public class SupporterSoundItem extends Item {
-    private final RegistryEntry<SoundEvent> sound;
+    private final SoundEvent sound;
 
-    public SupporterSoundItem(RegistryEntry<SoundEvent> sound, Settings settings) {
+    public SupporterSoundItem(SoundEvent sound, Settings settings) {
         super(settings);
         this.sound = sound;
     }
