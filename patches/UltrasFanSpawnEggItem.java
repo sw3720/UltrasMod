@@ -35,7 +35,7 @@ public class UltrasFanSpawnEggItem extends Item {
         }
 
         BlockPos spawnPos = context.getBlockPos().offset(context.getSide());
-        UltrasFanEntity fan = UltrasMod.ULTRAS_FAN.create(world, SpawnReason.SPAWN_EGG);
+        UltrasFanEntity fan = UltrasMod.ULTRAS_FAN.create(world, SpawnReason.SPAWN_ITEM_USE);
         if (fan == null) {
             return ActionResult.FAIL;
         }
