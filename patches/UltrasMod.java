@@ -6,7 +6,7 @@ import kr.ultrasmod.item.SupporterSmokeItem;
 import kr.ultrasmod.item.SupporterSoundItem;
 import kr.ultrasmod.item.UltrasFanSpawnEggItem;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.block.AbstractBlock;
@@ -18,21 +18,20 @@ import net.minecraft.entity.SpawnGroup;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class UltrasMod implements ModInitializer {
     public static final String MOD_ID = "ultrasmod";
-    private static final RegistryKey<ItemGroup> FUNCTIONAL_GROUP =
-            RegistryKey.of(RegistryKeys.ITEM_GROUP, Identifier.ofVanilla("functional"));
-    private static final RegistryKey<ItemGroup> SPAWN_EGGS_GROUP =
-            RegistryKey.of(RegistryKeys.ITEM_GROUP, Identifier.ofVanilla("spawn_eggs"));
-    private static final RegistryKey<ItemGroup> TOOLS_GROUP =
-            RegistryKey.of(RegistryKeys.ITEM_GROUP, Identifier.ofVanilla("tools"));
+
+    private static final RegistryKey<ItemGroup> ULTRAS_GROUP_KEY =
+            RegistryKey.of(RegistryKeys.ITEM_GROUP, id("ultras"));
 
     public static final Block SUPPORTER_FLAG_BLOCK = registerBlock("supporter_flag",
             new SupporterFlagBlock(AbstractBlock.Settings.copy(Blocks.WHITE_WOOL)
@@ -76,6 +75,40 @@ public class UltrasMod implements ModInitializer {
     public static final Item DESIGN_PALETTE = registerItem("design_palette",
             new Item(itemSettings("design_palette").maxCount(1)));
 
+    public static final ItemGroup ULTRAS_GROUP = Registry.register(
+            Registries.ITEM_GROUP,
+            ULTRAS_GROUP_KEY,
+            FabricItemGroup.builder()
+                    .displayName(Text.literal("울트라스"))
+                    .icon(() -> new ItemStack(SUPPORTER_FLAG_BLOCK))
+                    .entries((displayContext, entries) -> {
+                        // 깃발과 걸개
+                        entries.add(SUPPORTER_FLAG_BLOCK);
+                        entries.add(SUPPORTER_BANNER_BLOCK);
+
+                        // 그림판
+                        entries.add(DESIGN_PALETTE);
+
+                        // 응원 도구
+                        entries.add(SUPPORTER_SCARF);
+                        entries.add(MEGAPHONE);
+                        entries.add(SUPPORTER_DRUM);
+                        entries.add(CLAPPER);
+                        entries.add(RED_SUPPORTER_SMOKE);
+
+                        // 팀 색상별 울트라스 NPC 생성 알
+                        entries.add(EGG_GREEN);
+                        entries.add(EGG_BLUE);
+                        entries.add(EGG_RED);
+                        entries.add(EGG_YELLOW);
+                        entries.add(EGG_BLACK);
+                        entries.add(EGG_WHITE);
+                        entries.add(EGG_PURPLE);
+                        entries.add(EGG_ORANGE);
+                    })
+                    .build()
+    );
+
     private static Identifier id(String path) {
         return Identifier.of(MOD_ID, path);
     }
@@ -113,28 +146,5 @@ public class UltrasMod implements ModInitializer {
     @Override
     public void onInitialize() {
         FabricDefaultAttributeRegistry.register(ULTRAS_FAN, UltrasFanEntity.createAttributes());
-
-        ItemGroupEvents.modifyEntriesEvent(FUNCTIONAL_GROUP).register(entries -> {
-            entries.add(SUPPORTER_FLAG_BLOCK);
-            entries.add(SUPPORTER_BANNER_BLOCK);
-        });
-        ItemGroupEvents.modifyEntriesEvent(SPAWN_EGGS_GROUP).register(entries -> {
-            entries.add(EGG_GREEN);
-            entries.add(EGG_BLUE);
-            entries.add(EGG_RED);
-            entries.add(EGG_YELLOW);
-            entries.add(EGG_BLACK);
-            entries.add(EGG_WHITE);
-            entries.add(EGG_PURPLE);
-            entries.add(EGG_ORANGE);
-        });
-        ItemGroupEvents.modifyEntriesEvent(TOOLS_GROUP).register(entries -> {
-            entries.add(SUPPORTER_SCARF);
-            entries.add(MEGAPHONE);
-            entries.add(SUPPORTER_DRUM);
-            entries.add(CLAPPER);
-            entries.add(RED_SUPPORTER_SMOKE);
-            entries.add(DESIGN_PALETTE);
-        });
     }
 }
