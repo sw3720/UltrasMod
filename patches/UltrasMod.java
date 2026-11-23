@@ -66,15 +66,15 @@ public class UltrasMod implements ModInitializer {
 
     public static final Item SUPPORTER_SCARF = registerItem("supporter_scarf");
     public static final Item MEGAPHONE = registerItem("megaphone",
-            new SupporterSoundItem(MEGAPHONE_SOUND, new Item.Settings().maxCount(1)));
+            new SupporterSoundItem(MEGAPHONE_SOUND, itemSettings("megaphone").maxCount(1)));
     public static final Item SUPPORTER_DRUM = registerItem("supporter_drum",
-            new SupporterSoundItem(DRUM_SOUND, new Item.Settings().maxCount(1)));
+            new SupporterSoundItem(DRUM_SOUND, itemSettings("supporter_drum").maxCount(1)));
     public static final Item CLAPPER = registerItem("clapper",
-            new SupporterSoundItem(CLAPPER_SOUND, new Item.Settings().maxCount(1)));
+            new SupporterSoundItem(CLAPPER_SOUND, itemSettings("clapper").maxCount(1)));
     public static final Item RED_SUPPORTER_SMOKE = registerItem("red_supporter_smoke",
-            new SupporterSmokeItem(new Item.Settings().maxCount(16)));
+            new SupporterSmokeItem(itemSettings("red_supporter_smoke").maxCount(16)));
     public static final Item DESIGN_PALETTE = registerItem("design_palette",
-            new Item(new Item.Settings().maxCount(1)));
+            new Item(itemSettings("design_palette").maxCount(1)));
 
     private static Identifier id(String path) {
         return Identifier.of(MOD_ID, path);
@@ -85,14 +85,20 @@ public class UltrasMod implements ModInitializer {
         return Registry.register(Registries.SOUND_EVENT, soundId, SoundEvent.of(soundId));
     }
 
+    private static Item.Settings itemSettings(String name) {
+        return new Item.Settings()
+                .registryKey(RegistryKey.of(RegistryKeys.ITEM, id(name)));
+    }
+
     private static Block registerBlock(String name, Block block) {
         Block registered = Registry.register(Registries.BLOCK, id(name), block);
-        Registry.register(Registries.ITEM, id(name), new BlockItem(registered, new Item.Settings()));
+        Item.Settings settings = itemSettings(name).useBlockPrefixedTranslationKey();
+        Registry.register(Registries.ITEM, id(name), new BlockItem(registered, settings));
         return registered;
     }
 
     private static Item registerItem(String name) {
-        return registerItem(name, new Item(new Item.Settings().maxCount(1)));
+        return registerItem(name, new Item(itemSettings(name).maxCount(1)));
     }
 
     private static Item registerItem(String name, Item item) {
@@ -101,7 +107,7 @@ public class UltrasMod implements ModInitializer {
 
     private static Item registerEgg(String name, int teamColor, int spotColor) {
         return registerItem(name, new UltrasFanSpawnEggItem(
-                teamColor, spotColor, new Item.Settings().maxCount(16)));
+                teamColor, spotColor, itemSettings(name).maxCount(16)));
     }
 
     @Override
