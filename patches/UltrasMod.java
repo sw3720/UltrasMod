@@ -35,9 +35,13 @@ public class UltrasMod implements ModInitializer {
             RegistryKey.of(RegistryKeys.ITEM_GROUP, Identifier.ofVanilla("tools"));
 
     public static final Block SUPPORTER_FLAG_BLOCK = registerBlock("supporter_flag",
-            new SupporterFlagBlock(AbstractBlock.Settings.copy(Blocks.WHITE_WOOL).strength(0.7f).nonOpaque().noCollision()));
+            new SupporterFlagBlock(AbstractBlock.Settings.copy(Blocks.WHITE_WOOL)
+                    .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id("supporter_flag")))
+                    .strength(0.7f).nonOpaque().noCollision()));
     public static final Block SUPPORTER_BANNER_BLOCK = registerBlock("supporter_banner",
-            new SupporterFlagBlock(AbstractBlock.Settings.copy(Blocks.WHITE_WOOL).strength(0.7f).nonOpaque().noCollision()));
+            new SupporterFlagBlock(AbstractBlock.Settings.copy(Blocks.WHITE_WOOL)
+                    .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id("supporter_banner")))
+                    .strength(0.7f).nonOpaque().noCollision()));
 
     public static final EntityType<UltrasFanEntity> ULTRAS_FAN = Registry.register(
             Registries.ENTITY_TYPE, id("ultras_fan"),
