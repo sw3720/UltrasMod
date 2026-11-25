@@ -5,7 +5,7 @@ Minecraft Java Edition 1.21.4 · Fabric Loader · Java 21
 ## v0.3.7
 
 - Placeable supporter flag and banner blocks with a four-frame cloth animation.
-- Eight team-colour supporter NPC spawn items; no summon commands are required.
+- Eight team-colour supporter items that place vanilla armor stands wearing dyed team clothing. No zombie entity is used.\n- Large canvas placement: flags are 3×5 blocks and supporter banners are 12×3 blocks, placed as a continuous tiled image.
 - In-game 16×16 flag/banner art editor.
 - Scarf, megaphone, marching drum, clapper, and decorative red smoke particles.
 - Original mono OGG sounds for megaphone, drum, and clapper.
@@ -14,7 +14,7 @@ Minecraft Java Edition 1.21.4 · Fabric Loader · Java 21
 ## Install
 
 1. Use Minecraft Java 1.21.4 with Fabric Loader and Fabric API.
-2. Put the downloaded `ultras-mod-0.3.7.jar` in `.minecraft/mods`.
+2. Put the downloaded `ultras-mod-0.3.9.jar` in `.minecraft/mods`.
 3. Launch the Fabric 1.21.4 profile.
 
 ## Art editor limitation
