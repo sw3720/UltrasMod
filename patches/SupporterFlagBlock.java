@@ -5,8 +5,8 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
-import net.minecraft.state.property.DirectionProperty;
-import net.minecraft.state.property.IntegerProperty;
+import net.minecraft.state.property.EnumProperty;
+import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -15,8 +15,8 @@ import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 
 public class SupporterFlagBlock extends Block {
-    public static final DirectionProperty FACING = Properties.HORIZONTAL_FACING;
-    public static final IntegerProperty PART = IntegerProperty.of("part", 0, 35);
+    public static final EnumProperty<Direction> FACING = Properties.HORIZONTAL_FACING;
+    public static final IntProperty PART = IntProperty.of("part", 0, 35);
     private static final VoxelShape OUTLINE = VoxelShapes.cuboid(0.0, 0.0, 0.46875, 1.0, 1.0, 0.53125);
 
     public SupporterFlagBlock(Settings settings) {
