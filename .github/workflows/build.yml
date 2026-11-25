@@ -24,9 +24,11 @@ jobs:
           tar -xzf /tmp/UltrasMod_source.tar.gz -C .
           cp patches/SupporterFlagBlock.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/block/SupporterFlagBlock.java
           cp patches/UltrasMod.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/UltrasMod.java
+          cp patches/UltrasModClient.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/UltrasModClient.java
           cp patches/UltrasFanSpawnEggItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/UltrasFanSpawnEggItem.java
           cp patches/SupporterCanvasItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/SupporterCanvasItem.java
           rm -f UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/entity/UltrasFanEntity.java
+          rm -f UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/client/UltrasFanRenderer.java
           cp patches/SupporterSoundItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/SupporterSoundItem.java
           cp patches/SupporterSmokeItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/SupporterSmokeItem.java
 
