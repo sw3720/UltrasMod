@@ -1,20 +1,15 @@
 package kr.ultrasmod;
 
 import kr.ultrasmod.block.SupporterFlagBlock;
-import kr.ultrasmod.entity.UltrasFanEntity;
 import kr.ultrasmod.item.SupporterSmokeItem;
 import kr.ultrasmod.item.SupporterSoundItem;
+import kr.ultrasmod.item.SupporterCanvasItem;
 import kr.ultrasmod.item.UltrasFanSpawnEggItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
-import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
-import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.entity.EntityDimensions;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnGroup;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
@@ -33,22 +28,15 @@ public class UltrasMod implements ModInitializer {
     private static final RegistryKey<ItemGroup> ULTRAS_GROUP_KEY =
             RegistryKey.of(RegistryKeys.ITEM_GROUP, id("ultras"));
 
-    public static final Block SUPPORTER_FLAG_BLOCK = registerBlock("supporter_flag",
+    // 깃발은 3×5칸, 걸개는 12×3칸으로 한 번에 펼쳐진다.
+    public static final Block SUPPORTER_FLAG_BLOCK = registerCanvasBlock("supporter_flag",
             new SupporterFlagBlock(AbstractBlock.Settings.copy(Blocks.WHITE_WOOL)
                     .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id("supporter_flag")))
-                    .strength(0.7f).nonOpaque().noCollision()));
-    public static final Block SUPPORTER_BANNER_BLOCK = registerBlock("supporter_banner",
+                    .strength(0.7f).nonOpaque().noCollision()), 3, 5);
+    public static final Block SUPPORTER_BANNER_BLOCK = registerCanvasBlock("supporter_banner",
             new SupporterFlagBlock(AbstractBlock.Settings.copy(Blocks.WHITE_WOOL)
                     .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id("supporter_banner")))
-                    .strength(0.7f).nonOpaque().noCollision()));
-
-    public static final EntityType<UltrasFanEntity> ULTRAS_FAN = Registry.register(
-            Registries.ENTITY_TYPE, id("ultras_fan"),
-            FabricEntityTypeBuilder.create(SpawnGroup.CREATURE, UltrasFanEntity::new)
-                    .dimensions(EntityDimensions.fixed(0.6f, 1.95f))
-                    .trackRangeBlocks(12)
-                    .build(RegistryKey.of(RegistryKeys.ENTITY_TYPE, id("ultras_fan")))
-    );
+                    .strength(0.7f).nonOpaque().noCollision()), 12, 3);
 
     public static final Item EGG_GREEN = registerEgg("ultras_fan_spawn_egg_green", 0x168A45, 0xFFFFFF);
     public static final Item EGG_BLUE = registerEgg("ultras_fan_spawn_egg_blue", 0x1769AA, 0xE7F4FF);
@@ -123,6 +111,14 @@ public class UltrasMod implements ModInitializer {
                 .registryKey(RegistryKey.of(RegistryKeys.ITEM, id(name)));
     }
 
+    private static Block registerCanvasBlock(String name, Block block, int width, int height) {
+        Block registered = Registry.register(Registries.BLOCK, id(name), block);
+        Item.Settings settings = itemSettings(name).useBlockPrefixedTranslationKey();
+        Registry.register(Registries.ITEM, id(name),
+                new SupporterCanvasItem(registered, width, height, settings));
+        return registered;
+    }
+
     private static Block registerBlock(String name, Block block) {
         Block registered = Registry.register(Registries.BLOCK, id(name), block);
         Item.Settings settings = itemSettings(name).useBlockPrefixedTranslationKey();
@@ -145,6 +141,6 @@ public class UltrasMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        FabricDefaultAttributeRegistry.register(ULTRAS_FAN, UltrasFanEntity.createAttributes());
+        // All blocks, items, sounds, and the dedicated creative tab are registered above.
     }
 }
