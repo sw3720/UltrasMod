@@ -281,7 +281,7 @@ def write_canvas_models(block_name, texture_name, width, height):
             }]
         }
         (models_dir / f"{block_name}_part_{part}.json").write_text(
-            json.dumps(model, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
+            json.dumps(model, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         for facing, rotation in rotations.items():
             variants[f"facing={facing},part={part}"] = {
@@ -290,15 +290,15 @@ def write_canvas_models(block_name, texture_name, width, height):
             }
 
     (states_dir / f"{block_name}.json").write_text(
-        json.dumps({"variants": variants}, ensure_ascii=False, indent=2) + "\\n",
+        json.dumps({"variants": variants}, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8"
     )
     (models_dir / f"{block_name}.json").write_text(
-        json.dumps({"parent": f"ultrasmod:block/{block_name}_part_0"}, indent=2) + "\\n",
+        json.dumps({"parent": f"ultrasmod:block/{block_name}_part_0"}, indent=2) + "\n",
         encoding="utf-8"
     )
     (item_dir / f"{block_name}.json").write_text(
-        json.dumps({"parent": f"ultrasmod:block/{block_name}_part_0"}, indent=2) + "\\n",
+        json.dumps({"parent": f"ultrasmod:block/{block_name}_part_0"}, indent=2) + "\n",
         encoding="utf-8"
     )
 
