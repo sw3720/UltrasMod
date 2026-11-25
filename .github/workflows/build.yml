@@ -22,7 +22,6 @@ jobs:
           cat source/source-*.b64 | base64 --decode > /tmp/UltrasMod_source.tar.gz
           tar -tzf /tmp/UltrasMod_source.tar.gz >/dev/null
           tar -xzf /tmp/UltrasMod_source.tar.gz -C .
-          cp patches/UltrasFanEntity.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/entity/UltrasFanEntity.java
           cp patches/SupporterFlagBlock.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/block/SupporterFlagBlock.java
           cp patches/UltrasMod.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/UltrasMod.java
           cp patches/UltrasFanSpawnEggItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/UltrasFanSpawnEggItem.java
