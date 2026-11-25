@@ -12,6 +12,7 @@ import net.minecraft.item.ItemUsageContext;
 import net.minecraft.item.Items;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.EulerAngle;
 import net.minecraft.world.World;
 
 public class UltrasFanSpawnEggItem extends Item {
@@ -53,8 +54,10 @@ public class UltrasFanSpawnEggItem extends Item {
                 0.0f
         );
         supporter.setShowArms(true);
-        supporter.setNoBasePlate(true);
-        supporter.setSmall(false);
+        supporter.setHideBasePlate(true);
+        // Static raised-arm cheering pose; the display stand itself does not wander.
+        supporter.setLeftArmRotation(new EulerAngle(-1.2f, 0.0f, -0.45f));
+        supporter.setRightArmRotation(new EulerAngle(-1.2f, 0.0f, 0.45f));
         supporter.setCustomName(net.minecraft.text.Text.literal("울트라스"));
         supporter.setCustomNameVisible(false);
         supporter.setSilent(true);
