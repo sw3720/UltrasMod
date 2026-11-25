@@ -244,3 +244,63 @@ for locale,translations in {
     path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 
 print(f"Generated enhanced pixel art, animated cloth, and original OGG audio in {OUT}")
+
+
+# Large supporter canvases: each placed block is one tile of a single continuous image.
+def write_canvas_models(block_name, texture_name, width, height):
+    assets = OUT.parent
+    models_dir = assets / "models" / "block"
+    states_dir = assets / "blockstates"
+    item_dir = assets / "models" / "item"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    states_dir.mkdir(parents=True, exist_ok=True)
+    item_dir.mkdir(parents=True, exist_ok=True)
+
+    variants = {}
+    rotations = {"north": 0, "east": 90, "south": 180, "west": 270}
+    for part in range(36):
+        column = part % width
+        row = part // width
+        u0 = 16.0 * column / width
+        u1 = 16.0 * (column + 1) / width
+        v0 = 16.0 * row / height
+        v1 = 16.0 * (row + 1) / height
+        model = {
+            "ambientocclusion": False,
+            "textures": {
+                "cloth": f"ultrasmod:block/{texture_name}",
+                "particle": f"ultrasmod:block/{texture_name}"
+            },
+            "elements": [{
+                "from": [0, 0, 7.5],
+                "to": [16, 16, 8.5],
+                "faces": {
+                    "north": {"uv": [u0, v0, u1, v1], "texture": "#cloth"},
+                    "south": {"uv": [u0, v0, u1, v1], "texture": "#cloth"}
+                }
+            }]
+        }
+        (models_dir / f"{block_name}_part_{part}.json").write_text(
+            json.dumps(model, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
+        )
+        for facing, rotation in rotations.items():
+            variants[f"facing={facing},part={part}"] = {
+                "model": f"ultrasmod:block/{block_name}_part_{part}",
+                "y": rotation
+            }
+
+    (states_dir / f"{block_name}.json").write_text(
+        json.dumps({"variants": variants}, ensure_ascii=False, indent=2) + "\\n",
+        encoding="utf-8"
+    )
+    (models_dir / f"{block_name}.json").write_text(
+        json.dumps({"parent": f"ultrasmod:block/{block_name}_part_0"}, indent=2) + "\\n",
+        encoding="utf-8"
+    )
+    (item_dir / f"{block_name}.json").write_text(
+        json.dumps({"parent": f"ultrasmod:block/{block_name}_part_0"}, indent=2) + "\\n",
+        encoding="utf-8"
+    )
+
+write_canvas_models("supporter_flag", "flag_cloth", 3, 5)
+write_canvas_models("supporter_banner", "banner_cloth", 12, 3)
