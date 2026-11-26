@@ -22,68 +22,95 @@ FONT = {
     " ": ["00000"] * 7,
 }
 
-def bitmap_text(draw, text, center_x, y, fill, outline):
-    scale = 1
+def bitmap_text(draw, text, center_x, y, fill, outline, scale=1):
     width = len(text) * 6 * scale - scale
     x0 = int(center_x - width / 2)
     for ci, char in enumerate(text):
         for yy, row in enumerate(FONT.get(char, FONT[" "])):
             for xx, bit in enumerate(row):
                 if bit == "1":
-                    x = x0 + ci * 6 + xx
-                    py = y + yy
-                    draw.rectangle((x-1,py-1,x+1,py+1),fill=outline)
-                    draw.point((x,py),fill=fill)
+                    x = x0 + ci * 6 * scale + xx * scale
+                    py = y + yy * scale
+                    draw.rectangle((x-1, py-1, x+scale, py+scale), fill=outline)
+                    draw.rectangle((x, py, x+scale-1, py+scale-1), fill=fill)
+
 
 def flag_frame(kind, frame):
-    w = h = 64
-    img = Image.new("RGBA",(w,h),(0,0,0,255))
+    # Each frame is shaped like its installed multi-block canvas.
+    w, h = (96, 160) if kind == "flag" else (256, 64)
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 255))
     px = img.load()
     phase = frame * math.pi / 2
     for y in range(h):
         for x in range(w):
-            wave = math.sin(x/5.7+phase)*2.3 + math.sin(x/12.5-phase*.7)*.8
-            fold = math.sin(x/6.5+phase)*8 + math.cos(x/3.5-phase)*3
-            grain = ((x*23+y*17+x*y*3)%9)-4
+            wave = math.sin(x / max(3.0, w / 10) + phase) * (h * .012)
+            fold = math.sin(x / max(3.0, w / 9) + phase) * 3.5 + math.cos(x / max(3.0, w / 5) - phase) * 1.4
+            grain = ((x * 23 + y * 17 + x * y * 3) % 7) - 3
             if kind == "flag":
-                if y < 4 or y > 59: base=(10,25,16)
-                elif 24+wave < y < 39+wave: base=(238,239,224)
-                elif 22+wave < y < 24+wave or 39+wave < y < 42+wave: base=(12,24,15)
-                else: base=(19,119,62)
+                center = h * .52 + wave
+                if y < 5 or y >= h - 5:
+                    base = (9, 25, 16)
+                elif center - 13 <= y <= center + 13:
+                    base = (240, 241, 226)
+                elif center - 18 <= y < center - 13 or center + 13 < y <= center + 18:
+                    base = (10, 28, 17)
+                else:
+                    base = (19, 119, 62)
             else:
-                if y < 3 or y > 60: base=(10,15,12)
-                elif y < 15 or y > 49: base=(18,102,53)
-                elif y < 19 or y > 45: base=(232,233,218)
-                else: base=(17,22,19)
-            shade = fold + (31-y)*.09 + grain
-            px[x,y] = tuple(max(0,min(255,int(c+shade))) for c in base) + (255,)
-    d = ImageDraw.Draw(img)
-    for y in range(7,58,3):
-        d.point((2,y),fill=(203,215,198,255))
-        d.point((61,y),fill=(7,28,16,255))
-    cx,cy=32,(24 if kind=="flag" else 31)
-    shield=[(cx-12,cy-10),(cx+12,cy-10),(cx+11,cy+3),(cx,cy+14),(cx-11,cy+3)]
-    d.polygon(shield,fill=(8,29,17,255),outline=(246,246,229,255),width=2)
-    d.polygon([(cx-8,cy-7),(cx+8,cy-7),(cx+7,cy+2),(cx,cy+9),(cx-7,cy+2)],fill=(24,145,76,255))
-    star=[]
-    for i in range(10):
-        r=7 if i%2==0 else 3
-        a=-math.pi/2+i*math.pi/5
-        star.append((cx+math.cos(a)*r,cy-1+math.sin(a)*r))
-    d.polygon(star,fill=(255,255,238,255))
-    if kind=="flag": bitmap_text(d,"ULTRAS",32,48,(248,249,235,255),(4,30,16,255))
-    else: bitmap_text(d,"NO FEAR",32,49,(245,245,231,255),(3,18,11,255))
-    sheen=Image.new("RGBA",(w,h),(0,0,0,0)); sd=ImageDraw.Draw(sheen)
-    for x in range(w):
-        alpha=int(10+13*(.5+.5*math.sin(x/5+phase)))
-        sd.line((x,0,x+int(math.sin(x/8+phase)),h),fill=(255,255,255,alpha))
-    return Image.alpha_composite(img,sheen)
+                if y < 5 or y >= h - 5:
+                    base = (8, 17, 12)
+                elif y < h * .28:
+                    base = (21, 116, 61)
+                elif y < h * .72:
+                    base = (238, 239, 224)
+                else:
+                    base = (21, 116, 61)
+            shade = fold + (h / 2 - y) * .025 + grain
+            px[x, y] = tuple(max(0, min(255, int(c + shade))) for c in base) + (255,)
 
-for kind in ("flag","banner"):
-    sheet=Image.new("RGBA",(64,256))
+    d = ImageDraw.Draw(img)
+    if kind == "flag":
+        for y in range(8, h - 8, 7):
+            d.point((2, y), fill=(205, 218, 200, 255))
+            d.point((w - 3, y), fill=(7, 28, 16, 255))
+        cx, cy = w // 2, 59
+        shield = [(cx-21,cy-18),(cx+21,cy-18),(cx+19,cy+7),(cx,cy+27),(cx-19,cy+7)]
+        d.polygon(shield, fill=(8,29,17,255), outline=(246,246,229,255), width=3)
+        d.polygon([(cx-14,cy-12),(cx+14,cy-12),(cx+12,cy+5),(cx,cy+18),(cx-12,cy+5)], fill=(24,145,76,255))
+        star = []
+        for i in range(10):
+            r = 11 if i % 2 == 0 else 5
+            a = -math.pi/2 + i*math.pi/5
+            star.append((cx+math.cos(a)*r, cy-1+math.sin(a)*r))
+        d.polygon(star, fill=(255,255,238,255))
+        bitmap_text(d, "ULTRAS", cx, 124, (248,249,235,255), (4,30,16,255), scale=2)
+    else:
+        cx, cy = 34, h // 2
+        shield = [(cx-18,cy-20),(cx+18,cy-20),(cx+16,cy+7),(cx,cy+21),(cx-16,cy+7)]
+        d.polygon(shield, fill=(8,29,17,255), outline=(246,246,229,255), width=3)
+        d.polygon([(cx-11,cy-14),(cx+11,cy-14),(cx+10,cy+5),(cx,cy+13),(cx-10,cy+5)], fill=(24,145,76,255))
+        bitmap_text(d, "NO FEAR", 157, 13, (14,33,20,255), (247,247,232,255), scale=4)
+
+    sheen = Image.new("RGBA", (w, h), (0,0,0,0))
+    sd = ImageDraw.Draw(sheen)
+    for x in range(w):
+        alpha = int(8 + 15 * (.5 + .5 * math.sin(x / max(3.0,w/10) + phase)))
+        sd.line((x, 0, x + int(math.sin(x / max(3.0,w/8) + phase)), h), fill=(255,255,255,alpha))
+    return Image.alpha_composite(img, sheen)
+
+
+for kind, (frame_width, frame_height) in {"flag": (96, 160), "banner": (256, 64)}.items():
+    sheet = Image.new("RGBA", (frame_width, frame_height * 4))
     for frame in range(4):
-        sheet.paste(flag_frame(kind,frame),(0,frame*64))
-    sheet.save(OUT/"block"/f"{kind}_cloth.png",optimize=True)
+        sheet.paste(flag_frame(kind, frame), (0, frame * frame_height))
+    texture_path = OUT / "block" / f"{kind}_cloth.png"
+    sheet.save(texture_path, optimize=True)
+    texture_path.with_name(texture_path.name + ".mcmeta").write_text(
+        json.dumps({"animation": {
+            "width": frame_width, "height": frame_height,
+            "frametime": 4, "interpolate": True, "frames": [0, 1, 2, 3]
+        }}, indent=2) + "\n", encoding="utf-8"
+    )
 
 def icon():
     return Image.new("RGBA",(64,64),(0,0,0,0))
@@ -151,37 +178,40 @@ d.line((34,35,40,35),fill=(255,255,238),width=2); save("supporter_flag",im)
 
 teams={"green":(23,135,70),"blue":(31,106,178),"red":(194,37,46),"yellow":(235,187,39),
        "black":(35,40,37),"white":(228,231,218),"purple":(126,67,157),"orange":(224,112,28)}
-for name,colour in teams.items():
-    im=icon(); d=ImageDraw.Draw(im)
-    d.ellipse((13,6,53,60),fill=(238,234,214),outline=(24,32,26),width=3)
-    d.ellipse((17,10,49,56),fill=colour,outline=(250,249,232),width=2)
-    d.polygon([(20,27),(47,21),(46,31),(20,38)],fill=(248,247,226))
-    d.ellipse((27,34,39,46),fill=(12,29,18),outline=(251,248,226),width=1)
-    d.line((23,13,31,10),fill=(255,255,255),width=2)
-    save(f"ultras_fan_spawn_egg_{name}",im)
+assets_root = OUT.parent
+model_item_dir = assets_root / "models" / "item"
+item_definition_dir = assets_root / "items"
+model_item_dir.mkdir(parents=True, exist_ok=True)
+item_definition_dir.mkdir(parents=True, exist_ok=True)
 
-# Zombie-compatible 64x64 skin atlas with a human face and green supporter shirt.
-im=Image.new("RGBA",(64,64),(0,0,0,0)); d=ImageDraw.Draw(im)
-skin=(181,140,108); hair=(39,34,29); green=(22,127,65); pale=(236,239,222); dark=(18,39,26)
-for box in ((8,0,16,8),(0,8,8,16),(8,8,16,16),(16,8,24,16),(24,8,32,16),(16,0,24,8)):
-    d.rectangle(box,fill=skin)
-d.rectangle((8,0,16,3),fill=hair); d.rectangle((0,8,2,15),fill=hair); d.rectangle((24,8,26,15),fill=hair)
-for x in (9,13):
-    d.rectangle((x,10,x+1,11),fill=(246,244,225)); d.point((x+1,11),fill=(28,37,30))
-d.line((8,9,11,9),fill=hair); d.line((13,9,16,9),fill=hair); d.line((10,14,14,14),fill=(100,55,45))
-for box in ((20,20,28,32),(16,20,20,32),(28,20,32,32),(32,20,40,32)):
-    d.rectangle(box,fill=green)
-d.polygon(((23,20),(25,20),(24,24)),fill=pale); d.rectangle((20,26,28,27),fill=pale); d.rectangle((20,30,28,31),fill=dark)
-for box in ((44,20,48,32),(40,20,44,32),(48,20,52,32),(52,20,56,32),(36,52,40,64),(40,52,44,64),(44,52,48,64),(48,52,52,64)):
-    d.rectangle(box,fill=skin)
-d.rectangle((44,20,48,25),fill=green); d.rectangle((40,20,44,25),fill=green); d.rectangle((44,25,48,27),fill=pale)
-d.rectangle((52,20,56,25),fill=green); d.rectangle((48,20,52,25),fill=green); d.rectangle((48,25,52,27),fill=pale)
-for box in ((20,36,24,48),(24,36,28,48),(16,36,20,48),(28,36,32,48),(4,20,8,32),(0,20,4,32),(8,20,12,32),(12,20,16,32)):
-    d.rectangle(box,fill=dark)
-d.rectangle((20,36,28,39),fill=green)
-for box in ((20,45,24,48),(24,45,28,48),(4,29,8,32),(8,29,12,32)):
-    d.rectangle(box,fill=(35,40,36))
-im.save(OUT/"entity"/"ultras_fan.png",optimize=True)
+for name, colour in teams.items():
+    # The held item visibly depicts a clothed armor stand, not a spawn egg.
+    im = icon()
+    d = ImageDraw.Draw(im)
+    wood, dark, pale = (151,111,69), (48,43,35), (240,238,219)
+    d.ellipse((25,3,39,17), fill=wood, outline=dark, width=3)
+    d.rectangle((29,15,35,25), fill=wood, outline=dark, width=2)
+    d.rounded_rectangle((19,23,45,42), radius=5, fill=colour, outline=dark, width=3)
+    d.polygon([(21,26),(31,30),(43,25),(43,31),(31,36),(21,33)], fill=pale)
+    d.ellipse((28,31,36,39), fill=(15,34,21), outline=pale, width=1)
+    d.line((20,27,10,13), fill=wood, width=6)
+    d.line((44,27,54,13), fill=wood, width=6)
+    d.ellipse((6,8,14,16), fill=wood, outline=dark, width=2)
+    d.ellipse((50,8,58,16), fill=wood, outline=dark, width=2)
+    d.line((27,41,23,56), fill=dark, width=6)
+    d.line((37,41,41,56), fill=dark, width=6)
+    d.line((22,57,17,60), fill=wood, width=4)
+    d.line((42,57,47,60), fill=wood, width=4)
+    save(f"ultras_supporter_stand_{name}", im)
+
+    model_name = f"ultras_supporter_stand_{name}"
+    (model_item_dir / f"{model_name}.json").write_text(json.dumps({
+        "parent":"minecraft:item/generated",
+        "textures":{"layer0":f"ultrasmod:item/{model_name}"}
+    }, indent=2) + "\n", encoding="utf-8")
+    (item_definition_dir / f"{model_name}.json").write_text(json.dumps({
+        "model":{"type":"minecraft:model","model":f"ultrasmod:item/{model_name}"}
+    }, indent=2) + "\n", encoding="utf-8")
 
 # Original procedural crowd-supporter sound effects, encoded as mono OGG Vorbis.
 sound_dir=OUT.parent/"sounds"
@@ -235,12 +265,31 @@ sound_defs={
  "clapper":{"subtitle":"subtitles.ultrasmod.clapper","sounds":[{"name":"ultrasmod:clapper","volume":.95}]}
 }
 (OUT.parent/"sounds.json").write_text(json.dumps(sound_defs,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-for locale,translations in {
- "ko_kr":{"subtitles.ultrasmod.megaphone_call":"확성기 응원","subtitles.ultrasmod.drum_hit":"응원 북","subtitles.ultrasmod.clapper":"클래퍼 박수"},
- "en_us":{"subtitles.ultrasmod.megaphone_call":"Supporter megaphone","subtitles.ultrasmod.drum_hit":"Supporter drum","subtitles.ultrasmod.clapper":"Clapper"}
-}.items():
+stand_labels = {
+    "ko_kr": {
+        "green":"울트라스 갑옷 거치대 (초록)", "blue":"울트라스 갑옷 거치대 (파랑)",
+        "red":"울트라스 갑옷 거치대 (빨강)", "yellow":"울트라스 갑옷 거치대 (노랑)",
+        "black":"울트라스 갑옷 거치대 (검정)", "white":"울트라스 갑옷 거치대 (흰색)",
+        "purple":"울트라스 갑옷 거치대 (보라)", "orange":"울트라스 갑옷 거치대 (주황)"
+    },
+    "en_us": {
+        "green":"Ultras Supporter Stand (Green)", "blue":"Ultras Supporter Stand (Blue)",
+        "red":"Ultras Supporter Stand (Red)", "yellow":"Ultras Supporter Stand (Yellow)",
+        "black":"Ultras Supporter Stand (Black)", "white":"Ultras Supporter Stand (White)",
+        "purple":"Ultras Supporter Stand (Purple)", "orange":"Ultras Supporter Stand (Orange)"
+    }
+}
+sound_labels = {
+    "ko_kr":{"subtitles.ultrasmod.megaphone_call":"확성기 응원","subtitles.ultrasmod.drum_hit":"응원 북","subtitles.ultrasmod.clapper":"클래퍼 박수"},
+    "en_us":{"subtitles.ultrasmod.megaphone_call":"Supporter megaphone","subtitles.ultrasmod.drum_hit":"Supporter drum","subtitles.ultrasmod.clapper":"Clapper"}
+}
+for locale in ("ko_kr", "en_us"):
     path=OUT.parent/"lang"/f"{locale}.json"
-    data=json.loads(path.read_text(encoding="utf-8")); data.update(translations)
+    data=json.loads(path.read_text(encoding="utf-8"))
+    data.update(sound_labels[locale])
+    for team, label in stand_labels[locale].items():
+        data[f"item.ultrasmod.ultras_supporter_stand_{team}"] = label
+        data.pop(f"item.ultrasmod.ultras_fan_spawn_egg_{team}", None)
     path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 
 print(f"Generated enhanced pixel art, animated cloth, and original OGG audio in {OUT}")
@@ -304,3 +353,17 @@ def write_canvas_models(block_name, texture_name, width, height):
 
 write_canvas_models("supporter_flag", "flag_cloth", 3, 5)
 write_canvas_models("supporter_banner", "banner_cloth", 12, 3)
+
+# Clean up old spawn-egg item models and obsolete zombie texture.
+for team in teams:
+    legacy = f"ultras_fan_spawn_egg_{team}"
+    for folder in (assets_root / "items", assets_root / "models" / "item"):
+        old_path = folder / f"{legacy}.json"
+        if old_path.exists():
+            old_path.unlink()
+    old_texture = OUT / "item" / f"{legacy}.png"
+    if old_texture.exists():
+        old_texture.unlink()
+legacy_skin = OUT / "entity" / "ultras_fan.png"
+if legacy_skin.exists():
+    legacy_skin.unlink()
