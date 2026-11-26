@@ -25,7 +25,9 @@ jobs:
           cp patches/SupporterFlagBlock.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/block/SupporterFlagBlock.java
           cp patches/UltrasMod.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/UltrasMod.java
           cp patches/UltrasModClient.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/UltrasModClient.java
-          cp patches/UltrasFanSpawnEggItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/UltrasFanSpawnEggItem.java
+          cp patches/UltrasFanStandItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/UltrasFanStandItem.java
+          cp patches/FlagArtScreen.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/client/FlagArtScreen.java
+          rm -f UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/UltrasFanSpawnEggItem.java
           cp patches/SupporterCanvasItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/SupporterCanvasItem.java
           rm -f UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/entity/UltrasFanEntity.java
           rm -f UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/client/UltrasFanRenderer.java
@@ -40,7 +42,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           python tools/generate_assets.py UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/textures
-          sed -i 's/^mod_version=0.3.5$/mod_version=0.3.9/' UltrasMod_Fabric_1.21.4/gradle.properties
+          sed -i 's/^mod_version=0.3.5$/mod_version=0.4.0/' UltrasMod_Fabric_1.21.4/gradle.properties
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/megaphone_call.ogg
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/drum_hit.ogg
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/clapper.ogg
@@ -95,13 +97,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          JAR=build/libs/ultras-mod-0.3.9.jar
+          JAR=build/libs/ultras-mod-0.4.0.jar
           test -s "$JAR"
           jar tf "$JAR" > /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/textures/block/flag_cloth.png' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/blockstates/supporter_flag.json' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/models/block/supporter_banner_part_35.json' /tmp/ultrasmod-jar-contents.txt
           grep -q 'kr/ultrasmod/item/SupporterCanvasItem.class' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'kr/ultrasmod/item/UltrasFanStandItem.class' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'kr/ultrasmod/client/FlagArtScreen.class' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/items/ultras_supporter_stand_green.json' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/models/item/ultras_supporter_stand_green.json' /tmp/ultrasmod-jar-contents.txt
+          if grep -q 'ultras_fan_spawn_egg' /tmp/ultrasmod-jar-contents.txt; then echo 'Legacy spawn-egg assets must not be packaged'; exit 1; fi
           if grep -q 'kr/ultrasmod/entity/UltrasFanEntity.class' /tmp/ultrasmod-jar-contents.txt; then echo 'Zombie-based ultras entity must not be packaged'; exit 1; fi
           grep -q 'assets/ultrasmod/sounds/megaphone_call.ogg' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/sounds/drum_hit.ogg' /tmp/ultrasmod-jar-contents.txt
@@ -112,8 +119,8 @@ jobs:
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
-          name: UltrasMod-Fabric-1.21.4-v0.3.9
-          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.3.9.jar
+          name: UltrasMod-Fabric-1.21.4-v0.4.0
+          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.4.0.jar
           if-no-files-found: error
           retention-days: 30
 
