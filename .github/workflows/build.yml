@@ -113,7 +113,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: UltrasMod-Fabric-1.21.4-v0.3.9
-          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.3.8.jar
+          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.3.9.jar
           if-no-files-found: error
           retention-days: 30
 
