@@ -4,7 +4,7 @@ import kr.ultrasmod.block.SupporterFlagBlock;
 import kr.ultrasmod.item.SupporterSmokeItem;
 import kr.ultrasmod.item.SupporterSoundItem;
 import kr.ultrasmod.item.SupporterCanvasItem;
-import kr.ultrasmod.item.UltrasFanSpawnEggItem;
+import kr.ultrasmod.item.UltrasFanStandItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.block.AbstractBlock;
@@ -38,14 +38,15 @@ public class UltrasMod implements ModInitializer {
                     .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id("supporter_banner")))
                     .strength(0.7f).nonOpaque().noCollision()), 12, 3);
 
-    public static final Item EGG_GREEN = registerEgg("ultras_fan_spawn_egg_green", 0x168A45, 0xFFFFFF);
-    public static final Item EGG_BLUE = registerEgg("ultras_fan_spawn_egg_blue", 0x1769AA, 0xE7F4FF);
-    public static final Item EGG_RED = registerEgg("ultras_fan_spawn_egg_red", 0xC62828, 0xFFFFFF);
-    public static final Item EGG_YELLOW = registerEgg("ultras_fan_spawn_egg_yellow", 0xF4C430, 0x202020);
-    public static final Item EGG_BLACK = registerEgg("ultras_fan_spawn_egg_black", 0x202020, 0xEEEEEE);
-    public static final Item EGG_WHITE = registerEgg("ultras_fan_spawn_egg_white", 0xEEEEEE, 0x333333);
-    public static final Item EGG_PURPLE = registerEgg("ultras_fan_spawn_egg_purple", 0x7B3FA1, 0xFFFFFF);
-    public static final Item EGG_ORANGE = registerEgg("ultras_fan_spawn_egg_orange", 0xE87519, 0xFFFFFF);
+    // Holding one of these items shows a clothed supporter stand; right-click to place it.
+    public static final Item SUPPORTER_GREEN = registerSupporterStand("ultras_supporter_stand_green", 0x168A45, 0xFFFFFF);
+    public static final Item SUPPORTER_BLUE = registerSupporterStand("ultras_supporter_stand_blue", 0x1769AA, 0xE7F4FF);
+    public static final Item SUPPORTER_RED = registerSupporterStand("ultras_supporter_stand_red", 0xC62828, 0xFFFFFF);
+    public static final Item SUPPORTER_YELLOW = registerSupporterStand("ultras_supporter_stand_yellow", 0xF4C430, 0x202020);
+    public static final Item SUPPORTER_BLACK = registerSupporterStand("ultras_supporter_stand_black", 0x202020, 0xEEEEEE);
+    public static final Item SUPPORTER_WHITE = registerSupporterStand("ultras_supporter_stand_white", 0xEEEEEE, 0x333333);
+    public static final Item SUPPORTER_PURPLE = registerSupporterStand("ultras_supporter_stand_purple", 0x7B3FA1, 0xFFFFFF);
+    public static final Item SUPPORTER_ORANGE = registerSupporterStand("ultras_supporter_stand_orange", 0xE87519, 0xFFFFFF);
 
     public static final SoundEvent MEGAPHONE_SOUND = registerSound("megaphone_call");
     public static final SoundEvent DRUM_SOUND = registerSound("drum_hit");
@@ -84,15 +85,15 @@ public class UltrasMod implements ModInitializer {
                         entries.add(CLAPPER);
                         entries.add(RED_SUPPORTER_SMOKE);
 
-                        // 팀 색상별 울트라스 NPC 생성 알
-                        entries.add(EGG_GREEN);
-                        entries.add(EGG_BLUE);
-                        entries.add(EGG_RED);
-                        entries.add(EGG_YELLOW);
-                        entries.add(EGG_BLACK);
-                        entries.add(EGG_WHITE);
-                        entries.add(EGG_PURPLE);
-                        entries.add(EGG_ORANGE);
+                        // 팀 유니폼을 입힌 갑옷 거치대 설치 아이템
+                        entries.add(SUPPORTER_GREEN);
+                        entries.add(SUPPORTER_BLUE);
+                        entries.add(SUPPORTER_RED);
+                        entries.add(SUPPORTER_YELLOW);
+                        entries.add(SUPPORTER_BLACK);
+                        entries.add(SUPPORTER_WHITE);
+                        entries.add(SUPPORTER_PURPLE);
+                        entries.add(SUPPORTER_ORANGE);
                     })
                     .build()
     );
@@ -134,9 +135,9 @@ public class UltrasMod implements ModInitializer {
         return Registry.register(Registries.ITEM, id(name), item);
     }
 
-    private static Item registerEgg(String name, int teamColor, int spotColor) {
-        return registerItem(name, new UltrasFanSpawnEggItem(
-                teamColor, spotColor, itemSettings(name).maxCount(16)));
+    private static Item registerSupporterStand(String name, int teamColor, int trimColor) {
+        return registerItem(name, new UltrasFanStandItem(
+                teamColor, trimColor, itemSettings(name).maxCount(16)));
     }
 
     @Override
