@@ -1,5 +1,6 @@
 package kr.ultrasmod;
 
+import kr.ultrasmod.block.SupporterFlagBlock;
 import kr.ultrasmod.client.FlagArtScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -19,7 +20,8 @@ public class UltrasModClient implements ClientModInitializer {
             boolean banner = state.isOf(UltrasMod.SUPPORTER_BANNER_BLOCK);
             if (!flag && !banner) return ActionResult.PASS;
 
-            MinecraftClient.getInstance().setScreen(new FlagArtScreen(banner));
+            int designId = state.get(SupporterFlagBlock.DESIGN);
+            MinecraftClient.getInstance().setScreen(new FlagArtScreen(banner, designId));
             return ActionResult.SUCCESS;
         });
     }

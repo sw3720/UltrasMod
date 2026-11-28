@@ -6,6 +6,11 @@ import kr.ultrasmod.item.SupporterSoundItem;
 import kr.ultrasmod.item.SupporterCanvasItem;
 import kr.ultrasmod.item.UltrasFanStandItem;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.EulerAngle;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -142,6 +147,25 @@ public class UltrasMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // All blocks, items, sounds, and the dedicated creative tab are registered above.
+        // Existing supporter figures remain real armor stands; animate their cheering in place.
+        ServerTickEvents.END_WORLD_TICK.register(world -> {
+            Box loadedWorld = new Box(-30_000_000.0, -2048.0, -30_000_000.0,
+                    30_000_000.0, 2048.0, 30_000_000.0);
+            long tick = world.getTime();
+            for (ArmorStandEntity stand : world.getEntitiesByType(EntityType.ARMOR_STAND, loadedWorld,
+                    entity -> Text.literal("울트라스").equals(entity.getCustomName()))) {
+                stand.setNoGravity(true);
+                int phase = (int) (tick % 24L);
+                if (phase < 6) {
+                    stand.setLeftArmRotation(new EulerAngle(-92.0f, 0.0f, -10.0f));
+                    stand.setRightArmRotation(new EulerAngle(-92.0f, 0.0f, 10.0f));
+                } else {
+                    stand.setLeftArmRotation(new EulerAngle(-155.0f, 0.0f, -24.0f));
+                    stand.setRightArmRotation(new EulerAngle(-155.0f, 0.0f, 24.0f));
+                }
+                double jump = Math.max(0.0, Math.sin((tick + stand.getId() * 3.0) * Math.PI / 12.0)) * 0.22;
+                stand.setPosition(stand.getX(), stand.getBlockPos().getY() + jump, stand.getZ());
+            }
+        });
     }
 }

@@ -17,13 +17,13 @@ import net.minecraft.world.BlockView;
 public class SupporterFlagBlock extends Block {
     public static final EnumProperty<Direction> FACING = Properties.HORIZONTAL_FACING;
     public static final IntProperty PART = IntProperty.of("part", 0, 35);
+    public static final IntProperty DESIGN = IntProperty.of("design", 0, 63);
     private static final VoxelShape OUTLINE = VoxelShapes.cuboid(0.0, 0.0, 0.46875, 1.0, 1.0, 0.53125);
 
     public SupporterFlagBlock(Settings settings) {
         super(settings);
         setDefaultState(getStateManager().getDefaultState()
-                .with(FACING, Direction.NORTH)
-                .with(PART, 0));
+                .with(FACING, Direction.NORTH).with(PART, 0).with(DESIGN, 0));
     }
 
     @Override
@@ -33,7 +33,7 @@ public class SupporterFlagBlock extends Block {
 
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
-        builder.add(FACING, PART);
+        builder.add(FACING, PART, DESIGN);
     }
 
     @Override
