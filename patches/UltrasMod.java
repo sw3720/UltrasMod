@@ -186,12 +186,16 @@ public class UltrasMod implements ModInitializer {
                             Math.sin((tick + stand.getId() * 3.0) * Math.PI / 12.0)) * 0.24;
                     stand.setPosition(stand.getX(), Math.floor(stand.getY()) + jump, stand.getZ());
                 } else if (stand.getCommandTags().contains("ultrasmod_flagwave")) {
-                    double phase = (tick + stand.getId() * 5.0) * Math.PI / 18.0;
-                    float side = (float) Math.sin(phase);
-                    float lift = (float) Math.cos(phase);
+                    // A roughly 3 m large flag is swept broadly from left to right.
+                    // Yaw is the main movement; pitch/roll only add small natural follow-through.
+                    double phase = (tick + stand.getId() * 5.0) * Math.PI / 15.0;
+                    float sweep = (float) Math.sin(phase);
+                    float follow = (float) Math.cos(phase);
                     stand.setRightArmRotation(new EulerAngle(
-                            -2.05f + side * 0.48f, side * 0.62f, -0.25f + lift * 0.42f));
-                    stand.setLeftArmRotation(new EulerAngle(-1.55f, 0.0f, 0.12f));
+                            -1.18f + follow * 0.14f,
+                            sweep * 1.28f,
+                            -0.20f + sweep * 0.18f));
+                    stand.setLeftArmRotation(new EulerAngle(-1.35f, -0.12f, 0.18f));
                     stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
                 } else if (stand.getCommandTags().contains("ultrasmod_scarfwave")) {
                     double phase = (tick + stand.getId() * 4.0) * Math.PI / 24.0;
