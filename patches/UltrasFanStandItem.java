@@ -54,8 +54,8 @@ public class UltrasFanStandItem extends Item {
         stand.addCommandTag("ultrasmod_supporter");
 
         // Fixed raised-arm cheering pose. It is a real armor stand, not a spawn-egg mob.
-        stand.setLeftArmRotation(new EulerAngle(-110.0f, 0.0f, -28.0f));
-        stand.setRightArmRotation(new EulerAngle(-110.0f, 0.0f, 28.0f));
+        stand.setLeftArmRotation(new EulerAngle(-1.25f, 0.0f, -0.18f));
+        stand.setRightArmRotation(new EulerAngle(-1.25f, 0.0f, 0.18f));
 
         stand.equipStack(EquipmentSlot.HEAD, dyedLeather(Items.LEATHER_HELMET, teamColor));
         stand.equipStack(EquipmentSlot.CHEST, dyedLeather(Items.LEATHER_CHESTPLATE, teamColor));

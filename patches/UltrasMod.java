@@ -29,6 +29,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.ActionResult;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import java.util.List;
 
 public class UltrasMod implements ModInitializer {
     public static final String MOD_ID = "ultrasmod";
@@ -150,51 +151,93 @@ public class UltrasMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // Megaphone toggles the cheering animation only on the armor stand the player targets.
+        // One megaphone click configures the entire nearby supporter group.
+        // A shuffled 20% (at least one, but never everybody when there are multiple) jump;
+        // the rest clap. A second click stops the whole nearby group.
         UseEntityCallback.EVENT.register((player, world, hand, target, hitResult) -> {
             if (!player.getStackInHand(hand).isOf(MEGAPHONE)) return ActionResult.PASS;
-            if (!(target instanceof ArmorStandEntity stand)
-                    || !Text.literal("울트라스").equals(stand.getCustomName())) {
+            if (!(target instanceof ArmorStandEntity clicked)
+                    || !clicked.getCommandTags().contains("ultrasmod_supporter")) {
                 return ActionResult.PASS;
             }
             if (world.isClient) return ActionResult.SUCCESS;
 
-            boolean wasCheering = stand.getCommandTags().contains("ultrasmod_cheering");
-            if (wasCheering) {
-                stand.removeCommandTag("ultrasmod_cheering");
-                stand.setNoGravity(false);
-                stand.setPosition(stand.getX(), stand.getBlockPos().getY(), stand.getZ());
-                stand.setLeftArmRotation(new EulerAngle(-110.0f, 0.0f, -28.0f));
-                stand.setRightArmRotation(new EulerAngle(-110.0f, 0.0f, 28.0f));
-                player.sendMessage(Text.literal("응원 동작을 멈췄습니다."), true);
+            Box groupArea = clicked.getBoundingBox().expand(20.0, 12.0, 20.0);
+            List<ArmorStandEntity> group = world.getEntitiesByType(
+                    EntityType.ARMOR_STAND,
+                    groupArea,
+                    stand -> stand.getCommandTags().contains("ultrasmod_supporter")
+            );
+            if (group.isEmpty()) return ActionResult.PASS;
+
+            boolean stopGroup = group.stream()
+                    .anyMatch(stand -> stand.getCommandTags().contains("ultrasmod_cheering"));
+            if (stopGroup) {
+                for (ArmorStandEntity stand : group) {
+                    stand.removeCommandTag("ultrasmod_cheering");
+                    stand.removeCommandTag("ultrasmod_jump");
+                    stand.removeCommandTag("ultrasmod_clap");
+                    stand.setNoGravity(false);
+                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
+                    stand.setLeftArmRotation(new EulerAngle(-1.25f, 0.0f, -0.18f));
+                    stand.setRightArmRotation(new EulerAngle(-1.25f, 0.0f, 0.18f));
+                }
+                player.sendMessage(Text.literal("주변 응원단 동작을 모두 멈췄습니다."), true);
             } else {
-                stand.addCommandTag("ultrasmod_cheering");
-                stand.setNoGravity(true);
-                player.sendMessage(Text.literal("응원 동작을 시작했습니다!"), true);
+                // Shuffle the group so jumpers are spread out instead of being hand-picked.
+                for (int i = group.size() - 1; i > 0; i--) {
+                    int j = world.random.nextInt(i + 1);
+                    ArmorStandEntity swap = group.get(i);
+                    group.set(i, group.get(j));
+                    group.set(j, swap);
+                }
+                int jumpers = Math.max(1, Math.round(group.size() * 0.20f));
+                if (group.size() > 1) jumpers = Math.min(jumpers, group.size() - 1);
+
+                for (int i = 0; i < group.size(); i++) {
+                    ArmorStandEntity stand = group.get(i);
+                    stand.addCommandTag("ultrasmod_cheering");
+                    stand.setNoGravity(true);
+                    if (i < jumpers) {
+                        stand.addCommandTag("ultrasmod_jump");
+                        stand.removeCommandTag("ultrasmod_clap");
+                    } else {
+                        stand.addCommandTag("ultrasmod_clap");
+                        stand.removeCommandTag("ultrasmod_jump");
+                    }
+                }
+                player.sendMessage(Text.literal(
+                        "응원 시작! 점프 " + jumpers + "명 · 박수 " + (group.size() - jumpers) + "명"
+                ), true);
             }
-            world.playSound(null, stand.getX(), stand.getY(), stand.getZ(),
+
+            world.playSound(null, clicked.getX(), clicked.getY(), clicked.getZ(),
                     MEGAPHONE_SOUND, SoundCategory.PLAYERS, 1.0f, 1.0f);
             return ActionResult.SUCCESS;
         });
 
-        // Only supporters enabled with a megaphone are animated; all others stay still.
+        // Jumpers only bounce. Clappers only clap; their feet stay on the ground.
         ServerTickEvents.END_WORLD_TICK.register(world -> {
             Box loadedWorld = new Box(-30_000_000.0, -2048.0, -30_000_000.0,
                     30_000_000.0, 2048.0, 30_000_000.0);
             long tick = world.getTime();
             for (ArmorStandEntity stand : world.getEntitiesByType(EntityType.ARMOR_STAND, loadedWorld,
-                    entity -> Text.literal("울트라스").equals(entity.getCustomName())
-                            && entity.getCommandTags().contains("ultrasmod_cheering"))) {
-                int phase = (int) (tick % 24L);
-                if (phase < 6) {
-                    stand.setLeftArmRotation(new EulerAngle(-92.0f, 0.0f, -10.0f));
-                    stand.setRightArmRotation(new EulerAngle(-92.0f, 0.0f, 10.0f));
-                } else {
-                    stand.setLeftArmRotation(new EulerAngle(-155.0f, 0.0f, -24.0f));
-                    stand.setRightArmRotation(new EulerAngle(-155.0f, 0.0f, 24.0f));
+                    entity -> entity.getCommandTags().contains("ultrasmod_cheering"))) {
+                if (stand.getCommandTags().contains("ultrasmod_jump")) {
+                    // Jump role: body bobs, arms stay raised and do not clap.
+                    stand.setLeftArmRotation(new EulerAngle(-1.75f, 0.0f, -0.30f));
+                    stand.setRightArmRotation(new EulerAngle(-1.75f, 0.0f, 0.30f));
+                    double jump = Math.max(0.0,
+                            Math.sin((tick + stand.getId() * 3.0) * Math.PI / 12.0)) * 0.24;
+                    stand.setPosition(stand.getX(), Math.floor(stand.getY()) + jump, stand.getZ());
+                } else if (stand.getCommandTags().contains("ultrasmod_clap")) {
+                    // Clap role: feet never leave the floor; hands move together and apart rhythmically.
+                    boolean handsTogether = (tick % 12L) < 5L;
+                    float roll = handsTogether ? 0.10f : 0.58f;
+                    stand.setLeftArmRotation(new EulerAngle(-1.65f, 0.0f, -roll));
+                    stand.setRightArmRotation(new EulerAngle(-1.65f, 0.0f, roll));
+                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
                 }
-                double jump = Math.max(0.0, Math.sin((tick + stand.getId() * 3.0) * Math.PI / 12.0)) * 0.22;
-                stand.setPosition(stand.getX(), stand.getBlockPos().getY() + jump, stand.getZ());
             }
         });
     }
