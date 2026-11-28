@@ -45,12 +45,12 @@ public class UltrasMod implements ModInitializer {
     private static final Map<ServerWorld, Map<UUID, CheerState>> ACTIVE_SUPPORTERS = new WeakHashMap<>();
 
     private static final int CHEER_JUMP = 0;
-    private static final int CHEER_CLAP_2 = 1;
-    private static final int CHEER_HANDS = 2;
-    private static final int CHEER_SCARF = 3;
-    private static final int CHEER_SYNC_JUMP = 4;
-    private static final int CHEER_CLAP_3 = 5;
-    private static final int CHEER_CLAP_4 = 6;
+    private static final int CHEER_SYNC_JUMP = 1;
+    private static final int CHEER_CLAP_2 = 2;
+    private static final int CHEER_CLAP_3 = 3;
+    private static final int CHEER_CLAP_4 = 4;
+    private static final int CHEER_HANDS = 5;
+    private static final int CHEER_SCARF = 6;
 
     private static final class CheerState {
         private final ArmorStandEntity stand;
@@ -282,7 +282,6 @@ public class UltrasMod implements ModInitializer {
         // stable phase offset to create staggered, out-of-sync jumping.
         long time = world.getTime();
         float wave = (float) Math.sin(time * 0.38);
-        float clapCycle = (float) (0.5 - 0.5 * Math.cos(time * 0.70));
 
         var iterator = active.entrySet().iterator();
         while (iterator.hasNext()) {

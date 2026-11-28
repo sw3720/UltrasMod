@@ -25,15 +25,15 @@ public class SupporterMegaphoneItem extends Item {
     private static final double VIEW_RANGE = 512.0;
     private static final double MIN_VIEW_DOT = 0.70;
     private static final int JUMP = 0;
-    private static final int CLAP_2 = 1;
-    private static final int HANDS = 2;
-    private static final int SCARF = 3;
-    private static final int SYNC_JUMP = 4;
-    private static final int CLAP_3 = 5;
-    private static final int CLAP_4 = 6;
+    private static final int SYNC_JUMP = 1;
+    private static final int CLAP_2 = 2;
+    private static final int CLAP_3 = 3;
+    private static final int CLAP_4 = 4;
+    private static final int HANDS = 5;
+    private static final int SCARF = 6;
     private static final String[] MODE_NAMES = {
-            "엇박 점핑", "2박 박수", "오른팔 응원", "머플러 응원",
-            "정박 점핑", "3박 박수", "4박 박수"
+            "엇박 점핑", "정박 점핑", "2박 박수", "3박 박수",
+            "4박 박수", "오른팔 응원", "머플러 응원"
     };
 
     private final SoundEvent sound;
