@@ -96,7 +96,15 @@ def flag_frame(kind, frame):
     for x in range(w):
         alpha = int(8 + 15 * (.5 + .5 * math.sin(x / max(3.0,w/10) + phase)))
         sd.line((x, 0, x + int(math.sin(x / max(3.0,w/8) + phase)), h), fill=(255,255,255,alpha))
-    return Image.alpha_composite(img, sheen)
+    result = Image.alpha_composite(img, sheen)
+    if kind == "flag":
+        # The free lower edge of the flag ripples up and down while the top stays fixed to its pole.
+        result_pixels = result.load()
+        for x in range(w):
+            edge = int(h - 5 + math.sin(x / max(3.0, w / 10) + phase) * 7)
+            for y in range(max(0, edge), h):
+                result_pixels[x, y] = (0, 0, 0, 0)
+    return result
 
 
 for kind, (frame_width, frame_height) in {"flag": (96, 160), "banner": (256, 64)}.items():
@@ -410,6 +418,8 @@ def write_canvas_models(block_name, texture_name, width, height):
                 "ambientocclusion": False,
                 "textures": {
                     "cloth": f"ultrasmod:block/{numbered_texture}",
+                    "pole": "minecraft:block/stripped_spruce_log",
+                    "mount": "minecraft:block/iron_block",
                     "particle": f"ultrasmod:block/{numbered_texture}"
                 },
                 "elements": [{
@@ -421,6 +431,30 @@ def write_canvas_models(block_name, texture_name, width, height):
                     }
                 }]
             }
+
+            # A flag is installed as one complete fence-mounted assembly:
+            # the top rail spans all three upper tiles, and a central support
+            # reaches back to the fence instead of leaving the cloth as a bare sheet.
+            if block_name == "supporter_flag" and row == 0:
+                model["elements"].append({
+                    "from": [0, 14.0, 12.8],
+                    "to": [16, 16.0, 15.4],
+                    "faces": {face: {"texture": "#pole"} for face in
+                              ("north", "south", "east", "west", "up", "down")}
+                })
+                if column == width // 2:
+                    model["elements"].append({
+                        "from": [7.0, 14.0, 0.0],
+                        "to": [9.0, 16.0, 14.0],
+                        "faces": {face: {"texture": "#pole"} for face in
+                                  ("north", "south", "east", "west", "up", "down")}
+                    })
+                    model["elements"].append({
+                        "from": [6.0, 13.5, 0.0],
+                        "to": [10.0, 16.0, 1.5],
+                        "faces": {face: {"texture": "#mount"} for face in
+                                  ("north", "south", "east", "west", "up", "down")}
+                    })
             model_name = f"{block_name}_d{design:02d}_part_{part}"
             model_path = models_dir / f"{model_name}.json"
             model_path.write_text(json.dumps(model, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

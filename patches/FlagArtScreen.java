@@ -218,9 +218,13 @@ public class FlagArtScreen extends Screen {
         for (int frame = 0; frame < 4; frame++) {
             for (int x = 0; x < canvasWidth; x++) {
                 int offset = (int) Math.round(Math.sin(x * 0.18 + frame * Math.PI / 2.0) * 2.25);
+                int edge = canvasHeight - 1
+                        + (int) Math.round(Math.sin(x * 0.18 + frame * Math.PI / 2.0) * 2.0);
                 for (int y = 0; y < canvasHeight; y++) {
                     int sourceY = Math.max(0, Math.min(canvasHeight - 1, y + offset));
-                    image.setRGB(x, frame * canvasHeight + y, pixels[sourceY][x]);
+                    int color = pixels[sourceY][x];
+                    if (!banner && y > edge) color &= 0x00FFFFFF;
+                    image.setRGB(x, frame * canvasHeight + y, color);
                 }
             }
         }

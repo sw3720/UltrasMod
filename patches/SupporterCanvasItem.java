@@ -34,7 +34,7 @@ public class SupporterCanvasItem extends BlockItem {
         if (!(world.getBlockState(context.getBlockPos()).getBlock() instanceof FenceBlock)
                 || context.getSide().getAxis() == Direction.Axis.Y) {
             if (context.getPlayer() != null) context.getPlayer().sendMessage(
-                    Text.literal("깃발과 걸개는 울타리의 옆면을 클릭해서 설치하세요."), false);
+                    Text.literal("울타리의 수직 면을 클릭하면 깃대와 고정대가 연결된 깃발 한 세트가 설치됩니다."), false);
             return ActionResult.FAIL;
         }
         BlockPos anchor = context.getBlockPos().offset(context.getSide());
@@ -78,7 +78,7 @@ public class SupporterCanvasItem extends BlockItem {
         return ActionResult.CONSUME;
     }
 
-    /** A persistent counter gives each newly placed canvas its own texture slot. */
+    /** Places one complete pole-mounted flag assembly; each installation receives its own editable design slot. */
     private static int reserveDesignSlot() throws IOException {
         Path counter = FabricLoader.getInstance().getConfigDir().resolve("ultrasmod-design-slot.txt");
         Files.createDirectories(counter.getParent());
