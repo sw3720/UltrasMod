@@ -9,6 +9,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.EulerAngle;
@@ -62,6 +63,7 @@ public class UltrasMod implements ModInitializer {
     public static final SoundEvent CLAPPER_SOUND = registerSound("clapper");
 
     public static final Item SUPPORTER_SCARF = registerItem("supporter_scarf");
+    public static final Item SUPPORTER_HAND_FLAG = registerItem("supporter_hand_flag");
     public static final Item MEGAPHONE = registerItem("megaphone",
             new SupporterSoundItem(MEGAPHONE_SOUND, itemSettings("megaphone").maxCount(1)));
     public static final Item SUPPORTER_DRUM = registerItem("supporter_drum",
@@ -89,6 +91,7 @@ public class UltrasMod implements ModInitializer {
 
                         // 응원 도구
                         entries.add(SUPPORTER_SCARF);
+                        entries.add(SUPPORTER_HAND_FLAG);
                         entries.add(MEGAPHONE);
                         entries.add(SUPPORTER_DRUM);
                         entries.add(CLAPPER);
@@ -151,9 +154,8 @@ public class UltrasMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // One megaphone click configures the entire nearby supporter group.
-        // A shuffled 20% (at least one, but never everybody when there are multiple) jump;
-        // the rest clap. A second click stops the whole nearby group.
+        // One megaphone click randomly assigns distinct jobs to nearby supporters.
+        // Jumping is a minority role; others wave a handheld flag, wave scarves, or clap.
         UseEntityCallback.EVENT.register((player, world, hand, target, hitResult) -> {
             if (!player.getStackInHand(hand).isOf(MEGAPHONE)) return ActionResult.PASS;
             if (!(target instanceof ArmorStandEntity clicked)
@@ -177,37 +179,73 @@ public class UltrasMod implements ModInitializer {
                     stand.removeCommandTag("ultrasmod_cheering");
                     stand.removeCommandTag("ultrasmod_jump");
                     stand.removeCommandTag("ultrasmod_clap");
+                    stand.removeCommandTag("ultrasmod_flagwave");
+                    stand.removeCommandTag("ultrasmod_scarfwave");
                     stand.setNoGravity(false);
                     stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
+                    stand.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                    stand.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
                     stand.setLeftArmRotation(new EulerAngle(-1.25f, 0.0f, -0.18f));
                     stand.setRightArmRotation(new EulerAngle(-1.25f, 0.0f, 0.18f));
                 }
                 player.sendMessage(Text.literal("주변 응원단 동작을 모두 멈췄습니다."), true);
             } else {
-                // Shuffle the group so jumpers are spread out instead of being hand-picked.
                 for (int i = group.size() - 1; i > 0; i--) {
                     int j = world.random.nextInt(i + 1);
                     ArmorStandEntity swap = group.get(i);
                     group.set(i, group.get(j));
                     group.set(j, swap);
                 }
-                int jumpers = Math.max(1, Math.round(group.size() * 0.20f));
-                if (group.size() > 1) jumpers = Math.min(jumpers, group.size() - 1);
+
+                int jumpers = group.size() >= 4
+                        ? Math.max(1, Math.round(group.size() * 0.15f)) : 0;
+                int flagWavers = Math.round(group.size() * 0.30f);
+                int scarfWavers = Math.round(group.size() * 0.30f);
+                if (group.size() > 1) {
+                    while (jumpers + flagWavers + scarfWavers > group.size() - 1) {
+                        if (scarfWavers > 0) scarfWavers--;
+                        else if (flagWavers > 0) flagWavers--;
+                        else if (jumpers > 0) jumpers--;
+                    }
+                } else {
+                    jumpers = 0;
+                    flagWavers = 0;
+                    scarfWavers = 0;
+                }
 
                 for (int i = 0; i < group.size(); i++) {
                     ArmorStandEntity stand = group.get(i);
                     stand.addCommandTag("ultrasmod_cheering");
-                    stand.setNoGravity(true);
+                    stand.removeCommandTag("ultrasmod_jump");
+                    stand.removeCommandTag("ultrasmod_clap");
+                    stand.removeCommandTag("ultrasmod_flagwave");
+                    stand.removeCommandTag("ultrasmod_scarfwave");
+                    stand.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                    stand.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+
                     if (i < jumpers) {
                         stand.addCommandTag("ultrasmod_jump");
-                        stand.removeCommandTag("ultrasmod_clap");
+                        stand.setNoGravity(true);
+                    } else if (i < jumpers + flagWavers) {
+                        stand.addCommandTag("ultrasmod_flagwave");
+                        stand.setNoGravity(false);
+                        stand.equipStack(EquipmentSlot.MAINHAND, new ItemStack(SUPPORTER_HAND_FLAG));
+                    } else if (i < jumpers + flagWavers + scarfWavers) {
+                        stand.addCommandTag("ultrasmod_scarfwave");
+                        stand.setNoGravity(false);
+                        stand.equipStack(EquipmentSlot.MAINHAND, new ItemStack(SUPPORTER_SCARF));
+                        stand.equipStack(EquipmentSlot.OFFHAND, new ItemStack(SUPPORTER_SCARF));
                     } else {
                         stand.addCommandTag("ultrasmod_clap");
-                        stand.removeCommandTag("ultrasmod_jump");
+                        stand.setNoGravity(false);
                     }
+                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
                 }
+
                 player.sendMessage(Text.literal(
-                        "응원 시작! 점프 " + jumpers + "명 · 박수 " + (group.size() - jumpers) + "명"
+                        "응원 시작! 점프 " + jumpers + "명 · 깃발 " + flagWavers
+                                + "명 · 머플러 " + scarfWavers + "명 · 박수 "
+                                + (group.size() - jumpers - flagWavers - scarfWavers) + "명"
                 ), true);
             }
 
@@ -216,7 +254,6 @@ public class UltrasMod implements ModInitializer {
             return ActionResult.SUCCESS;
         });
 
-        // Jumpers only bounce. Clappers only clap; their feet stay on the ground.
         ServerTickEvents.END_WORLD_TICK.register(world -> {
             Box loadedWorld = new Box(-30_000_000.0, -2048.0, -30_000_000.0,
                     30_000_000.0, 2048.0, 30_000_000.0);
@@ -224,14 +261,29 @@ public class UltrasMod implements ModInitializer {
             for (ArmorStandEntity stand : world.getEntitiesByType(EntityType.ARMOR_STAND, loadedWorld,
                     entity -> entity.getCommandTags().contains("ultrasmod_cheering"))) {
                 if (stand.getCommandTags().contains("ultrasmod_jump")) {
-                    // Jump role: body bobs, arms stay raised and do not clap.
                     stand.setLeftArmRotation(new EulerAngle(-1.75f, 0.0f, -0.30f));
                     stand.setRightArmRotation(new EulerAngle(-1.75f, 0.0f, 0.30f));
                     double jump = Math.max(0.0,
                             Math.sin((tick + stand.getId() * 3.0) * Math.PI / 12.0)) * 0.24;
                     stand.setPosition(stand.getX(), Math.floor(stand.getY()) + jump, stand.getZ());
+                } else if (stand.getCommandTags().contains("ultrasmod_flagwave")) {
+                    double phase = (tick + stand.getId() * 5.0) * Math.PI / 18.0;
+                    float side = (float) Math.sin(phase);
+                    float lift = (float) Math.cos(phase);
+                    stand.setRightArmRotation(new EulerAngle(
+                            -2.05f + side * 0.48f, side * 0.62f, -0.25f + lift * 0.42f));
+                    stand.setLeftArmRotation(new EulerAngle(-1.55f, 0.0f, 0.12f));
+                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
+                } else if (stand.getCommandTags().contains("ultrasmod_scarfwave")) {
+                    double phase = (tick + stand.getId() * 4.0) * Math.PI / 24.0;
+                    float sway = (float) Math.sin(phase);
+                    float lift = (float) Math.cos(phase);
+                    stand.setLeftArmRotation(new EulerAngle(
+                            -2.72f + lift * 0.16f, -0.18f + sway * 0.16f, -0.58f - sway * 0.18f));
+                    stand.setRightArmRotation(new EulerAngle(
+                            -2.72f - lift * 0.16f, 0.18f + sway * 0.16f, 0.58f + sway * 0.18f));
+                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
                 } else if (stand.getCommandTags().contains("ultrasmod_clap")) {
-                    // Clap role: feet never leave the floor; hands move together and apart rhythmically.
                     boolean handsTogether = (tick % 12L) < 5L;
                     float roll = handsTogether ? 0.10f : 0.58f;
                     stand.setLeftArmRotation(new EulerAngle(-1.65f, 0.0f, -roll));
