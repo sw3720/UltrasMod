@@ -143,13 +143,15 @@ d.ellipse((14,9,26,21),fill=(38,159,85),outline=(10,28,17),width=2)
 d.ellipse((38,4,51,17),fill=(245,246,228),outline=(18,32,23),width=2); save("clapper",im)
 
 im=icon(); d=ImageDraw.Draw(im)
-d.rounded_rectangle((5,20,59,43),radius=9,fill=(12,25,16),outline=(6,15,9),width=3)
-d.rounded_rectangle((8,23,56,40),radius=6,fill=(26,143,74),outline=(232,239,221),width=2)
-for x in range(13,57,9): d.rectangle((x,24,x+3,39),fill=(237,241,224))
-d.rounded_rectangle((17,35,38,61),radius=5,fill=(18,104,53),outline=(7,22,12),width=2)
-d.line((22,39,22,57),fill=(247,245,222),width=3); d.line((30,39,30,57),fill=(9,30,15),width=2)
-for x in (20,26,32,38): d.line((x,58,x-2,63),fill=(229,234,217),width=2)
-save("supporter_scarf",im)
+d.polygon([(4,19),(59,15),(60,43),(7,48)],fill=(18,123,63),outline=(8,28,16),width=3)
+d.line((8,25,57,21),fill=(245,245,228),width=5)
+d.line((8,34,58,30),fill=(245,245,228),width=4)
+d.line((8,42,57,38),fill=(8,41,22),width=2)
+for x in range(7,15,3):
+    d.line((x,46,x-2,59),fill=(235,238,220),width=2)
+for x in range(50,59,3):
+    d.line((x,42,x+2,56),fill=(235,238,220),width=2)
+d.text((26,20),"J",fill=(9,45,23)); save("supporter_scarf",im)
 
 im=icon(); d=ImageDraw.Draw(im)
 d.rounded_rectangle((6,7,58,58),radius=15,fill=(122,76,41),outline=(47,29,17),width=3)
@@ -175,6 +177,7 @@ d.line((19,13,53,15),fill=(248,249,229),width=2)
 d.polygon([(20,23),(55,24),(53,29),(20,28)],fill=(240,242,226))
 d.ellipse((31,26,44,38),fill=(9,44,23),outline=(246,247,232),width=1)
 d.line((34,35,40,35),fill=(255,255,238),width=2); save("supporter_flag",im)
+save("supporter_hand_flag",im.copy())
 
 teams={"green":(23,135,70),"blue":(31,106,178),"red":(194,37,46),"yellow":(235,187,39),
        "black":(35,40,37),"white":(228,231,218),"purple":(126,67,157),"orange":(224,112,28)}
@@ -208,6 +211,21 @@ for name, colour in teams.items():
     (model_item_dir / f"{model_name}.json").write_text(json.dumps({
         "parent":"minecraft:item/generated",
         "textures":{"layer0":f"ultrasmod:item/{model_name}"}
+    }, indent=2) + "\n", encoding="utf-8")
+    (item_definition_dir / f"{model_name}.json").write_text(json.dumps({
+        "model":{"type":"minecraft:model","model":f"ultrasmod:item/{model_name}"}
+    }, indent=2) + "\n", encoding="utf-8")
+
+for model_name, scale in (("supporter_hand_flag", 2.35), ("supporter_scarf", 2.15)):
+    (model_item_dir / f"{model_name}.json").write_text(json.dumps({
+        "parent":"minecraft:item/generated",
+        "textures":{"layer0":f"ultrasmod:item/{model_name}"},
+        "display":{
+            "thirdperson_righthand":{"rotation":[0,0,0],"translation":[0,1,0],"scale":[scale,scale,scale]},
+            "thirdperson_lefthand":{"rotation":[0,0,0],"translation":[0,1,0],"scale":[scale,scale,scale]},
+            "firstperson_righthand":{"rotation":[0,-90,25],"translation":[1.13,3.2,1.13],"scale":[scale,scale,scale]},
+            "firstperson_lefthand":{"rotation":[0,90,-25],"translation":[1.13,3.2,1.13],"scale":[scale,scale,scale]}
+        }
     }, indent=2) + "\n", encoding="utf-8")
     (item_definition_dir / f"{model_name}.json").write_text(json.dumps({
         "model":{"type":"minecraft:model","model":f"ultrasmod:item/{model_name}"}
@@ -283,10 +301,15 @@ sound_labels = {
     "ko_kr":{"subtitles.ultrasmod.megaphone_call":"확성기 응원","subtitles.ultrasmod.drum_hit":"응원 북","subtitles.ultrasmod.clapper":"클래퍼 박수"},
     "en_us":{"subtitles.ultrasmod.megaphone_call":"Supporter megaphone","subtitles.ultrasmod.drum_hit":"Supporter drum","subtitles.ultrasmod.clapper":"Clapper"}
 }
+prop_labels = {
+    "ko_kr":{"item.ultrasmod.supporter_hand_flag":"응원용 흔드는 깃발","item.ultrasmod.supporter_scarf":"응원 머플러"},
+    "en_us":{"item.ultrasmod.supporter_hand_flag":"Handheld Supporter Flag","item.ultrasmod.supporter_scarf":"Supporter Scarf"}
+}
 for locale in ("ko_kr", "en_us"):
     path=OUT.parent/"lang"/f"{locale}.json"
     data=json.loads(path.read_text(encoding="utf-8"))
     data.update(sound_labels[locale])
+    data.update(prop_labels[locale])
     for team, label in stand_labels[locale].items():
         data[f"item.ultrasmod.ultras_supporter_stand_{team}"] = label
         data.pop(f"item.ultrasmod.ultras_fan_spawn_egg_{team}", None)
