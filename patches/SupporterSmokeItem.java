@@ -9,10 +9,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 
-/**
- * Harmless, purely visual red supporter-colour particles.
- * No fire, explosive effect, damage, or real-world device is involved.
- */
+/** Large, long-lived visual red supporter smoke. It has no fire or damage effect. */
 public class SupporterSmokeItem extends Item {
     public SupporterSmokeItem(Settings settings) {
         super(settings);
@@ -21,12 +18,12 @@ public class SupporterSmokeItem extends Item {
     @Override
     public ActionResult use(World world, PlayerEntity user, Hand hand) {
         if (!world.isClient && world instanceof ServerWorld serverWorld) {
-            DustParticleEffect red = new DustParticleEffect(0xD52C38, 1.6f);
-            serverWorld.spawnParticles(red, user.getX(), user.getY() + 0.8, user.getZ(),
-                    52, 0.42, 0.55, 0.42, 0.015);
-            serverWorld.spawnParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE,
-                    user.getX(), user.getY() + 0.8, user.getZ(),
-                    16, 0.25, 0.35, 0.25, 0.012);
+            DustParticleEffect red = new DustParticleEffect(0xD52C38, 2.5f);
+            serverWorld.spawnParticles(red, user.getX(), user.getY() + 0.9, user.getZ(),
+                    140, 0.78, 1.0, 0.78, 0.018);
+            serverWorld.spawnParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                    user.getX(), user.getY() + 0.9, user.getZ(),
+                    42, 0.42, 0.65, 0.42, 0.018);
         }
         user.getItemCooldownManager().set(user.getStackInHand(hand), 35);
         return ActionResult.SUCCESS;

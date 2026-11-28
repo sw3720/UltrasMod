@@ -331,8 +331,8 @@ def write_canvas_models(block_name, texture_name, width, height):
                     "particle": f"ultrasmod:block/{numbered_texture}"
                 },
                 "elements": [{
-                    "from": [0, 0, 7.5],
-                    "to": [16, 16, 8.5],
+                    "from": [0, 0, 15.0],
+                    "to": [16, 16, 16.0],
                     "faces": {
                         "north": {"uv": [u0, v0, u1, v1], "texture": "#cloth"},
                         "south": {"uv": [u0, v0, u1, v1], "texture": "#cloth"}

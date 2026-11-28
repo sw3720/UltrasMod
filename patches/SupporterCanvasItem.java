@@ -4,6 +4,7 @@ import kr.ultrasmod.block.SupporterFlagBlock;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.FenceBlock;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.text.Text;
@@ -30,6 +31,12 @@ public class SupporterCanvasItem extends BlockItem {
     public ActionResult useOnBlock(ItemUsageContext context) {
         World world = context.getWorld();
         if (world.isClient) return ActionResult.SUCCESS;
+        if (!(world.getBlockState(context.getBlockPos()).getBlock() instanceof FenceBlock)
+                || context.getSide().getAxis() == Direction.Axis.Y) {
+            if (context.getPlayer() != null) context.getPlayer().sendMessage(
+                    Text.literal("깃발과 걸개는 울타리의 옆면을 클릭해서 설치하세요."), false);
+            return ActionResult.FAIL;
+        }
         BlockPos anchor = context.getBlockPos().offset(context.getSide());
         Direction facing = context.getHorizontalPlayerFacing().getOpposite();
         Direction across = facing.rotateYClockwise();
