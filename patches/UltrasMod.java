@@ -1,6 +1,7 @@
 package kr.ultrasmod;
 
 import kr.ultrasmod.block.SupporterFlagBlock;
+import kr.ultrasmod.item.SupporterFlagControllerItem;
 import kr.ultrasmod.item.SupporterSmokeItem;
 import kr.ultrasmod.item.SupporterSoundItem;
 import kr.ultrasmod.item.SupporterMegaphoneItem;
@@ -8,9 +9,10 @@ import kr.ultrasmod.item.SupporterCanvasItem;
 import kr.ultrasmod.item.UltrasFanStandItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.util.math.Box;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.EulerAngle;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.block.AbstractBlock;
@@ -29,12 +31,20 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.ActionResult;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.WeakHashMap;
 
 public class UltrasMod implements ModInitializer {
     public static final String MOD_ID = "ultrasmod";
 
     private static final RegistryKey<ItemGroup> ULTRAS_GROUP_KEY =
             RegistryKey.of(RegistryKeys.ITEM_GROUP, id("ultras"));
+
+    private static final Map<ServerWorld, Set<UUID>> ACTIVE_SUPPORTERS = new WeakHashMap<>();
 
     // 깃발은 3×5칸, 걸개는 12×3칸으로 한 번에 펼쳐진다.
     public static final Block SUPPORTER_FLAG_BLOCK = registerCanvasBlock("supporter_flag",
@@ -45,6 +55,8 @@ public class UltrasMod implements ModInitializer {
             new SupporterFlagBlock(AbstractBlock.Settings.copy(Blocks.WHITE_WOOL)
                     .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id("supporter_banner")))
                     .strength(0.7f).nonOpaque().noCollision()), 12, 3);
+    public static final Item SUPPORTER_FLAG_CONTROLLER = registerItem("supporter_flag_controller",
+            new SupporterFlagControllerItem(itemSettings("supporter_flag_controller").maxCount(1)));
 
     // Holding one of these items shows a clothed supporter stand; right-click to place it.
     public static final Item SUPPORTER_GREEN = registerSupporterStand("ultras_supporter_stand_green", 0x168A45, 0xFFFFFF);
@@ -91,6 +103,7 @@ public class UltrasMod implements ModInitializer {
                         // 깃발과 걸개
                         entries.add(SUPPORTER_FLAG_BLOCK);
                         entries.add(SUPPORTER_BANNER_BLOCK);
+                        entries.add(SUPPORTER_FLAG_CONTROLLER);
 
                         // 그림판
                         entries.add(DESIGN_PALETTE);
@@ -168,21 +181,59 @@ public class UltrasMod implements ModInitializer {
         return SUPPORTER_HAND_FLAG;
     }
 
+    public static void trackCheeringStand(ServerWorld world, ArmorStandEntity stand) {
+        ACTIVE_SUPPORTERS.computeIfAbsent(world, key -> new HashSet<>()).add(stand.getUuid());
+    }
+
+    private static void tickActiveSupporters(ServerWorld world) {
+        Set<UUID> active = ACTIVE_SUPPORTERS.get(world);
+        if (active == null || active.isEmpty()) return;
+
+        long time = world.getTime();
+        Iterator<UUID> iterator = active.iterator();
+        while (iterator.hasNext()) {
+            Entity entity = world.getEntity(iterator.next());
+            if (entity == null) continue; // Keep unloaded-entity UUIDs for chunk reloads.
+            if (!(entity instanceof ArmorStandEntity stand) || stand.isRemoved()) {
+                iterator.remove();
+                continue;
+            }
+
+            if (stand.getCommandTags().contains("ultrasmod_jump")) {
+                // The standard player jump impulse; vanilla gravity handles the arc.
+                stand.setNoGravity(false);
+                if (stand.getVelocity().x != 0.0 || stand.getVelocity().z != 0.0) {
+                    stand.setVelocity(0.0, stand.getVelocity().y, 0.0);
+                }
+                if (stand.isOnGround() && stand.getVelocity().y <= 0.0) {
+                    stand.setVelocity(0.0, 0.42, 0.0);
+                }
+                continue;
+            }
+
+            stand.setNoGravity(true);
+            if (stand.getVelocity().lengthSquared() != 0.0) stand.setVelocity(0.0, 0.0, 0.0);
+            if (time % 2L != 0L) continue;
+
+            float wave = (float) Math.sin((time + stand.getId() * 3L) * 0.42);
+            if (stand.getCommandTags().contains("ultrasmod_clap")) {
+                float close = wave * 0.30f;
+                stand.setLeftArmRotation(new EulerAngle(-1.20f, 0.0f, -0.25f + close));
+                stand.setRightArmRotation(new EulerAngle(-1.20f, 0.0f, 0.25f - close));
+            } else if (stand.getCommandTags().contains("ultrasmod_hands")) {
+                stand.setLeftArmRotation(new EulerAngle(-2.70f, 0.0f, -0.42f + wave * 0.18f));
+                stand.setRightArmRotation(new EulerAngle(-2.70f, 0.0f, 0.42f - wave * 0.18f));
+            } else if (stand.getCommandTags().contains("ultrasmod_scarfwave")) {
+                stand.setLeftArmRotation(new EulerAngle(-2.20f, 0.0f, -0.62f + wave * 0.22f));
+                stand.setRightArmRotation(new EulerAngle(-2.20f, 0.0f, 0.62f - wave * 0.22f));
+            }
+        }
+        if (active.isEmpty()) ACTIVE_SUPPORTERS.remove(world);
+    }
+
     @Override
     public void onInitialize() {
-        // Every supporter stand performs the same simple jump animation.
-        ServerTickEvents.END_WORLD_TICK.register(world -> {
-            Box loadedWorld = new Box(-30_000_000.0, -2048.0, -30_000_000.0,
-                    30_000_000.0, 2048.0, 30_000_000.0);
-            long tick = world.getTime();
-            for (ArmorStandEntity stand : world.getEntitiesByType(EntityType.ARMOR_STAND, loadedWorld,
-                    entity -> entity.getCommandTags().contains("ultrasmod_jump"))) {
-                stand.setLeftArmRotation(new EulerAngle(-1.75f, 0.0f, -0.30f));
-                stand.setRightArmRotation(new EulerAngle(-1.75f, 0.0f, 0.30f));
-                double jump = Math.max(0.0,
-                        Math.sin((tick + stand.getId() * 3.0) * Math.PI / 12.0)) * 0.24;
-                stand.setPosition(stand.getX(), Math.floor(stand.getY()) + jump, stand.getZ());
-            }
-        });
+        // Only actively cheering stands are updated. Idle stands are never scanned.
+        ServerTickEvents.END_WORLD_TICK.register(UltrasMod::tickActiveSupporters);
     }
 }

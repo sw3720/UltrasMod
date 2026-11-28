@@ -29,6 +29,7 @@ jobs:
           cp patches/FlagArtScreen.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/client/FlagArtScreen.java
           rm -f UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/UltrasFanSpawnEggItem.java
           cp patches/SupporterCanvasItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/SupporterCanvasItem.java
+          cp patches/SupporterFlagControllerItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/SupporterFlagControllerItem.java
           rm -f UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/entity/UltrasFanEntity.java
           rm -f UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/client/UltrasFanRenderer.java
           cp patches/SupporterSoundItem.java UltrasMod_Fabric_1.21.4/src/main/java/kr/ultrasmod/item/SupporterSoundItem.java
@@ -43,7 +44,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           python tools/generate_assets.py UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/textures
-          sed -i 's/^mod_version=0.3.5$/mod_version=0.4.8/' UltrasMod_Fabric_1.21.4/gradle.properties
+          sed -i 's/^mod_version=0.3.5$/mod_version=0.4.9/' UltrasMod_Fabric_1.21.4/gradle.properties
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/megaphone_call.ogg
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/drum_hit.ogg
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/clapper.ogg
@@ -68,7 +69,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          JAR=build/libs/ultras-mod-0.4.8.jar
+          JAR=build/libs/ultras-mod-0.4.9.jar
           test -s "$JAR"
           jar tf "$JAR" > /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/textures/block/flag_cloth.png' /tmp/ultrasmod-jar-contents.txt
@@ -89,6 +90,10 @@ jobs:
             grep -q "assets/ultrasmod/textures/item/supporter_hand_flag_${team}.png" /tmp/ultrasmod-jar-contents.txt
           done
           grep -q 'kr/ultrasmod/item/SupporterMegaphoneItem.class' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'kr/ultrasmod/item/SupporterFlagControllerItem.class' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/items/supporter_flag_controller.json' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/models/item/supporter_flag_controller.json' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/textures/item/supporter_flag_controller.png' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/items/supporter_hand_flag.json' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/models/item/supporter_hand_flag.json' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/items/supporter_scarf.json' /tmp/ultrasmod-jar-contents.txt
@@ -102,8 +107,8 @@ jobs:
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
-          name: UltrasMod-Fabric-1.21.4-v0.4.8
-          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.4.8.jar
+          name: UltrasMod-Fabric-1.21.4-v0.4.9
+          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.4.9.jar
           if-no-files-found: error
           retention-days: 30
 

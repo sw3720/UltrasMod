@@ -263,6 +263,14 @@ for name, colour in teams.items():
         "model":{"type":"minecraft:model","model":f"ultrasmod:item/{model_name}"}
     }, indent=2) + "\n", encoding="utf-8")
 
+controller = icon(); d = ImageDraw.Draw(controller)
+d.rounded_rectangle((7, 9, 57, 56), radius=7, fill=(73, 79, 73), outline=(18, 25, 19), width=3)
+d.line((18, 46, 18, 15), fill=(226, 232, 217), width=4)
+d.polygon([(18, 7), (9, 18), (27, 18)], fill=(64, 190, 103), outline=(18, 49, 28))
+d.polygon([(40, 16), (55, 24), (40, 32)], fill=(64, 190, 103), outline=(18, 49, 28))
+d.polygon([(40, 35), (25, 43), (40, 51)], fill=(238, 239, 222), outline=(31, 39, 31))
+save("supporter_flag_controller", controller)
+
 for model_name, scale in (("supporter_hand_flag", 2.35), ("supporter_scarf", 2.15)):
     (model_item_dir / f"{model_name}.json").write_text(json.dumps({
         "parent":"minecraft:item/generated",
@@ -277,6 +285,15 @@ for model_name, scale in (("supporter_hand_flag", 2.35), ("supporter_scarf", 2.1
     (item_definition_dir / f"{model_name}.json").write_text(json.dumps({
         "model":{"type":"minecraft:model","model":f"ultrasmod:item/{model_name}"}
     }, indent=2) + "\n", encoding="utf-8")
+
+controller_name = "supporter_flag_controller"
+(model_item_dir / f"{controller_name}.json").write_text(json.dumps({
+    "parent": "minecraft:item/generated",
+    "textures": {"layer0": f"ultrasmod:item/{controller_name}"}
+}, indent=2) + "\n", encoding="utf-8")
+(item_definition_dir / f"{controller_name}.json").write_text(json.dumps({
+    "model": {"type": "minecraft:model", "model": f"ultrasmod:item/{controller_name}"}
+}, indent=2) + "\n", encoding="utf-8")
 
 # Original procedural crowd-supporter sound effects, encoded as mono OGG Vorbis.
 sound_dir=OUT.parent/"sounds"
@@ -358,7 +375,8 @@ prop_labels = {
         "item.ultrasmod.supporter_hand_flag_white":"대형기 (흰색)",
         "item.ultrasmod.supporter_hand_flag_purple":"대형기 (보라)",
         "item.ultrasmod.supporter_hand_flag_orange":"대형기 (주황)",
-        "item.ultrasmod.supporter_scarf":"응원 머플러"
+        "item.ultrasmod.supporter_scarf":"응원 머플러",
+        "item.ultrasmod.supporter_flag_controller":"깃발 승강 작동기"
     },
     "en_us":{
         "item.ultrasmod.supporter_hand_flag":"Large Supporter Flag (Green)",
@@ -369,7 +387,8 @@ prop_labels = {
         "item.ultrasmod.supporter_hand_flag_white":"Large Supporter Flag (White)",
         "item.ultrasmod.supporter_hand_flag_purple":"Large Supporter Flag (Purple)",
         "item.ultrasmod.supporter_hand_flag_orange":"Large Supporter Flag (Orange)",
-        "item.ultrasmod.supporter_scarf":"Supporter Scarf"
+        "item.ultrasmod.supporter_scarf":"Supporter Scarf",
+        "item.ultrasmod.supporter_flag_controller":"Flag Lift Controller"
     }
 }
 for locale in ("ko_kr", "en_us"):
@@ -432,29 +451,36 @@ def write_canvas_models(block_name, texture_name, width, height):
                 }]
             }
 
-            # A flag is installed as one complete fence-mounted assembly:
-            # the top rail spans all three upper tiles, and a central support
-            # reaches back to the fence instead of leaving the cloth as a bare sheet.
-            if block_name == "supporter_flag" and row == 0:
-                model["elements"].append({
-                    "from": [0, 14.0, 12.8],
-                    "to": [16, 16.0, 15.4],
-                    "faces": {face: {"texture": "#pole"} for face in
-                              ("north", "south", "east", "west", "up", "down")}
-                })
-                if column == width // 2:
+            # Complete assembly: a continuous five-block mast runs along the left edge.
+            # The three-block top rail holds the cloth and connects the pole to the fence.
+            if block_name == "supporter_flag":
+                if column == 0:
                     model["elements"].append({
-                        "from": [7.0, 14.0, 0.0],
-                        "to": [9.0, 16.0, 14.0],
+                        "from": [0.8, 0.0, 14.0],
+                        "to": [2.6, 16.0, 15.8],
                         "faces": {face: {"texture": "#pole"} for face in
                                   ("north", "south", "east", "west", "up", "down")}
                     })
+                if row == 0:
                     model["elements"].append({
-                        "from": [6.0, 13.5, 0.0],
-                        "to": [10.0, 16.0, 1.5],
-                        "faces": {face: {"texture": "#mount"} for face in
+                        "from": [0.0, 14.0, 12.8],
+                        "to": [16.0, 16.0, 15.4],
+                        "faces": {face: {"texture": "#pole"} for face in
                                   ("north", "south", "east", "west", "up", "down")}
                     })
+                    if column == width // 2:
+                        model["elements"].append({
+                            "from": [7.0, 14.0, 0.0],
+                            "to": [9.0, 16.0, 14.0],
+                            "faces": {face: {"texture": "#pole"} for face in
+                                      ("north", "south", "east", "west", "up", "down")}
+                        })
+                        model["elements"].append({
+                            "from": [6.0, 13.5, 0.0],
+                            "to": [10.0, 16.0, 1.5],
+                            "faces": {face: {"texture": "#mount"} for face in
+                                      ("north", "south", "east", "west", "up", "down")}
+                        })
             model_name = f"{block_name}_d{design:02d}_part_{part}"
             model_path = models_dir / f"{model_name}.json"
             model_path.write_text(json.dumps(model, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
