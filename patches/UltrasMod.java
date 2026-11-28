@@ -45,9 +45,12 @@ public class UltrasMod implements ModInitializer {
     private static final Map<ServerWorld, Map<UUID, CheerState>> ACTIVE_SUPPORTERS = new WeakHashMap<>();
 
     private static final int CHEER_JUMP = 0;
-    private static final int CHEER_CLAP = 1;
+    private static final int CHEER_CLAP_2 = 1;
     private static final int CHEER_HANDS = 2;
     private static final int CHEER_SCARF = 3;
+    private static final int CHEER_SYNC_JUMP = 4;
+    private static final int CHEER_CLAP_3 = 5;
+    private static final int CHEER_CLAP_4 = 6;
 
     private static final class CheerState {
         private final ArmorStandEntity stand;
@@ -226,13 +229,19 @@ public class UltrasMod implements ModInitializer {
         stand.removeCommandTag("ultrasmod_clap");
         stand.removeCommandTag("ultrasmod_hands");
         stand.removeCommandTag("ultrasmod_scarfwave");
+        stand.removeCommandTag("ultrasmod_sync_jump");
+        stand.removeCommandTag("ultrasmod_clap3");
+        stand.removeCommandTag("ultrasmod_clap4");
         stand.addCommandTag("ultrasmod_cheering");
 
         switch (mode) {
             case CHEER_JUMP -> stand.addCommandTag("ultrasmod_jump");
-            case CHEER_CLAP -> stand.addCommandTag("ultrasmod_clap");
+            case CHEER_CLAP_2 -> stand.addCommandTag("ultrasmod_clap");
             case CHEER_HANDS -> stand.addCommandTag("ultrasmod_hands");
             case CHEER_SCARF -> stand.addCommandTag("ultrasmod_scarfwave");
+            case CHEER_SYNC_JUMP -> stand.addCommandTag("ultrasmod_sync_jump");
+            case CHEER_CLAP_3 -> stand.addCommandTag("ultrasmod_clap3");
+            case CHEER_CLAP_4 -> stand.addCommandTag("ultrasmod_clap4");
             default -> throw new IllegalArgumentException("Unknown cheer mode " + mode);
         }
 
@@ -291,35 +300,18 @@ public class UltrasMod implements ModInitializer {
             }
 
             switch (state.mode) {
-                case CHEER_JUMP -> {
-                    // Each stand jumps at a different point in the cycle, like a real crowd.
-                    // The curve gives a short rise, fall, and grounded beat.
-                    long jumpPhase = Math.floorMod(time + state.jumpPhaseOffset, JUMP_CYCLE_TICKS);
-                    double jumpHeight = Math.max(0.0,
-                            0.42 * jumpPhase - 0.04 * jumpPhase * jumpPhase);
-                    stand.setPosition(stand.getX(), state.baseY + jumpHeight, stand.getZ());
-
-                    float lift = (float) (150.0 + 10.0 * Math.sin(time * 0.38));
-                    stand.setLeftArmRotation(new EulerAngle(-8.0f, 0.0f, -lift));
-                    stand.setRightArmRotation(new EulerAngle(-8.0f, 0.0f, lift));
-                }
-                case CHEER_CLAP -> {
-                    stand.setPosition(stand.getX(), state.baseY, stand.getZ());
-
-                    // Sweep the forearms inward to touch in front of the chest,
-                    // then outward again. EulerAngle values are DEGREES.
-                    float angle = 28.0f + clapCycle * 62.0f;
-                    stand.setLeftArmRotation(new EulerAngle(-18.0f, 0.0f, -angle));
-                    stand.setRightArmRotation(new EulerAngle(-18.0f, 0.0f, angle));
-                }
+                case CHEER_JUMP -> applyJumpPose(state, stand, time, true);
+                case CHEER_SYNC_JUMP -> applyJumpPose(state, stand, time, false);
+                case CHEER_CLAP_2 -> { stand.setPosition(stand.getX(), state.baseY, stand.getZ()); applyClapPose(stand, time, 2); }
+                case CHEER_CLAP_3 -> { stand.setPosition(stand.getX(), state.baseY, stand.getZ()); applyClapPose(stand, time, 3); }
+                case CHEER_CLAP_4 -> { stand.setPosition(stand.getX(), state.baseY, stand.getZ()); applyClapPose(stand, time, 4); }
                 case CHEER_HANDS -> {
                     stand.setPosition(stand.getX(), state.baseY, stand.getZ());
 
-                    // Both arms are raised; small opposite yaw changes create a
-                    // clear synchronized left-right hand wave without moving the body.
-                    float yaw = wave * 20.0f;
-                    float roll = 155.0f + wave * 8.0f;
-                    stand.setLeftArmRotation(new EulerAngle(-8.0f, yaw, -roll));
+                    // One-arm cheering: keep the left arm still and wave only the right arm.
+                    stand.setLeftArmRotation(new EulerAngle(-10.0f, 0.0f, -10.0f));
+                    float yaw = wave * 24.0f;
+                    float roll = 150.0f + wave * 12.0f;
                     stand.setRightArmRotation(new EulerAngle(-8.0f, -yaw, roll));
                 }
                 case CHEER_SCARF -> {
@@ -337,6 +329,40 @@ public class UltrasMod implements ModInitializer {
             }
         }
         if (active.isEmpty()) ACTIVE_SUPPORTERS.remove(world);
+    }
+
+    private static void applyJumpPose(CheerState state, ArmorStandEntity stand,
+                                       long time, boolean staggered) {
+        long offset = staggered ? state.jumpPhaseOffset : 0L;
+        long jumpPhase = Math.floorMod(time + offset, JUMP_CYCLE_TICKS);
+        double jumpHeight = Math.max(0.0,
+                0.42 * jumpPhase - 0.04 * jumpPhase * jumpPhase);
+        stand.setPosition(stand.getX(), state.baseY + jumpHeight, stand.getZ());
+
+        float lift = (float) (150.0 + 10.0 * Math.sin(time * 0.38));
+        stand.setLeftArmRotation(new EulerAngle(-8.0f, 0.0f, -lift));
+        stand.setRightArmRotation(new EulerAngle(-8.0f, 0.0f, lift));
+    }
+
+    /** Each beat is a short clap stroke followed by a rest before the next beat. */
+    private static void applyClapPose(ArmorStandEntity stand, long time, int beats) {
+        // The caller keeps the stand on its recorded baseline.
+        long ticksPerBeat = 10L;
+        long barPosition = Math.floorMod(time, ticksPerBeat * beats);
+        long beatPosition = barPosition % ticksPerBeat;
+
+        float pulse;
+        if (beatPosition <= 2L) {
+            pulse = beatPosition / 2.0f;
+        } else if (beatPosition <= 4L) {
+            pulse = (4L - beatPosition) / 2.0f;
+        } else {
+            pulse = 0.0f;
+        }
+
+        float angle = 28.0f + pulse * 62.0f;
+        stand.setLeftArmRotation(new EulerAngle(-18.0f, 0.0f, -angle));
+        stand.setRightArmRotation(new EulerAngle(-18.0f, 0.0f, angle));
     }
 
     @Override

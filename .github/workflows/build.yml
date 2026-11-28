@@ -44,7 +44,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           python tools/generate_assets.py UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/textures
-          sed -i 's/^mod_version=0.3.5$/mod_version=0.4.13/' UltrasMod_Fabric_1.21.4/gradle.properties
+          sed -i 's/^mod_version=0.3.5$/mod_version=0.4.14/' UltrasMod_Fabric_1.21.4/gradle.properties
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/megaphone_call.ogg
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/drum_hit.ogg
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/clapper.ogg
@@ -69,7 +69,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          JAR=build/libs/ultras-mod-0.4.13.jar
+          JAR=build/libs/ultras-mod-0.4.14.jar
           test -s "$JAR"
           jar tf "$JAR" > /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/textures/block/flag_cloth.png' /tmp/ultrasmod-jar-contents.txt
@@ -107,8 +107,8 @@ jobs:
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
-          name: UltrasMod-Fabric-1.21.4-v0.4.13
-          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.4.13.jar
+          name: UltrasMod-Fabric-1.21.4-v0.4.14
+          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.4.14.jar
           if-no-files-found: error
           retention-days: 30
 

@@ -20,15 +20,21 @@ import net.minecraft.server.world.ServerWorld;
 
 import java.util.List;
 
-/** Cycles visible supporter stands through four crowd-cheering modes. */
+/** Cycles visible supporter stands through all crowd-cheering modes. */
 public class SupporterMegaphoneItem extends Item {
     private static final double VIEW_RANGE = 512.0;
     private static final double MIN_VIEW_DOT = 0.70;
     private static final int JUMP = 0;
-    private static final int CLAP = 1;
+    private static final int CLAP_2 = 1;
     private static final int HANDS = 2;
     private static final int SCARF = 3;
-    private static final String[] MODE_NAMES = {"점핑 응원", "박수 응원", "손 응원", "머플러 응원"};
+    private static final int SYNC_JUMP = 4;
+    private static final int CLAP_3 = 5;
+    private static final int CLAP_4 = 6;
+    private static final String[] MODE_NAMES = {
+            "엇박 점핑", "2박 박수", "오른팔 응원", "머플러 응원",
+            "정박 점핑", "3박 박수", "4박 박수"
+    };
 
     private final SoundEvent sound;
 
@@ -58,7 +64,7 @@ public class SupporterMegaphoneItem extends Item {
         }
 
         int currentMode = getMode(visible.get(0));
-        int nextMode = currentMode < 0 ? JUMP : (currentMode + 1) % 4;
+        int nextMode = currentMode < 0 ? JUMP : (currentMode + 1) % MODE_NAMES.length;
         if (!(world instanceof ServerWorld serverWorld)) return ActionResult.PASS;
         for (ArmorStandEntity stand : visible) {
             UltrasMod.setCheeringMode(serverWorld, stand, nextMode);
@@ -76,9 +82,12 @@ public class SupporterMegaphoneItem extends Item {
 
     private static int getMode(ArmorStandEntity stand) {
         if (stand.getCommandTags().contains("ultrasmod_jump")) return JUMP;
-        if (stand.getCommandTags().contains("ultrasmod_clap")) return CLAP;
+        if (stand.getCommandTags().contains("ultrasmod_clap")) return CLAP_2;
         if (stand.getCommandTags().contains("ultrasmod_hands")) return HANDS;
         if (stand.getCommandTags().contains("ultrasmod_scarfwave")) return SCARF;
+        if (stand.getCommandTags().contains("ultrasmod_sync_jump")) return SYNC_JUMP;
+        if (stand.getCommandTags().contains("ultrasmod_clap3")) return CLAP_3;
+        if (stand.getCommandTags().contains("ultrasmod_clap4")) return CLAP_4;
         return -1;
     }
 
