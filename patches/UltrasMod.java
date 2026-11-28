@@ -3,11 +3,11 @@ package kr.ultrasmod;
 import kr.ultrasmod.block.SupporterFlagBlock;
 import kr.ultrasmod.item.SupporterSmokeItem;
 import kr.ultrasmod.item.SupporterSoundItem;
+import kr.ultrasmod.item.SupporterMegaphoneItem;
 import kr.ultrasmod.item.SupporterCanvasItem;
 import kr.ultrasmod.item.UltrasFanStandItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.decoration.ArmorStandEntity;
@@ -30,7 +30,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.ActionResult;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import java.util.List;
 
 public class UltrasMod implements ModInitializer {
     public static final String MOD_ID = "ultrasmod";
@@ -63,9 +62,17 @@ public class UltrasMod implements ModInitializer {
     public static final SoundEvent CLAPPER_SOUND = registerSound("clapper");
 
     public static final Item SUPPORTER_SCARF = registerItem("supporter_scarf");
+    // Green is the default large flag; other variants match the stand's uniform color.
     public static final Item SUPPORTER_HAND_FLAG = registerItem("supporter_hand_flag");
+    public static final Item SUPPORTER_HAND_FLAG_BLUE = registerItem("supporter_hand_flag_blue");
+    public static final Item SUPPORTER_HAND_FLAG_RED = registerItem("supporter_hand_flag_red");
+    public static final Item SUPPORTER_HAND_FLAG_YELLOW = registerItem("supporter_hand_flag_yellow");
+    public static final Item SUPPORTER_HAND_FLAG_BLACK = registerItem("supporter_hand_flag_black");
+    public static final Item SUPPORTER_HAND_FLAG_WHITE = registerItem("supporter_hand_flag_white");
+    public static final Item SUPPORTER_HAND_FLAG_PURPLE = registerItem("supporter_hand_flag_purple");
+    public static final Item SUPPORTER_HAND_FLAG_ORANGE = registerItem("supporter_hand_flag_orange");
     public static final Item MEGAPHONE = registerItem("megaphone",
-            new SupporterSoundItem(MEGAPHONE_SOUND, itemSettings("megaphone").maxCount(1)));
+            new SupporterMegaphoneItem(MEGAPHONE_SOUND, itemSettings("megaphone").maxCount(1)));
     public static final Item SUPPORTER_DRUM = registerItem("supporter_drum",
             new SupporterSoundItem(DRUM_SOUND, itemSettings("supporter_drum").maxCount(1)));
     public static final Item CLAPPER = registerItem("clapper",
@@ -152,108 +159,20 @@ public class UltrasMod implements ModInitializer {
                 teamColor, trimColor, itemSettings(name).maxCount(16)));
     }
 
+    public static Item handFlagForSupporter(ArmorStandEntity stand) {
+        if (stand.getCommandTags().contains("ultrasmod_team_blue")) return SUPPORTER_HAND_FLAG_BLUE;
+        if (stand.getCommandTags().contains("ultrasmod_team_red")) return SUPPORTER_HAND_FLAG_RED;
+        if (stand.getCommandTags().contains("ultrasmod_team_yellow")) return SUPPORTER_HAND_FLAG_YELLOW;
+        if (stand.getCommandTags().contains("ultrasmod_team_black")) return SUPPORTER_HAND_FLAG_BLACK;
+        if (stand.getCommandTags().contains("ultrasmod_team_white")) return SUPPORTER_HAND_FLAG_WHITE;
+        if (stand.getCommandTags().contains("ultrasmod_team_purple")) return SUPPORTER_HAND_FLAG_PURPLE;
+        if (stand.getCommandTags().contains("ultrasmod_team_orange")) return SUPPORTER_HAND_FLAG_ORANGE;
+        return SUPPORTER_HAND_FLAG;
+    }
+
     @Override
     public void onInitialize() {
-        // One megaphone click randomly assigns distinct jobs to nearby supporters.
-        // Jumping is a minority role; others wave a handheld flag, wave scarves, or clap.
-        UseEntityCallback.EVENT.register((player, world, hand, target, hitResult) -> {
-            if (!player.getStackInHand(hand).isOf(MEGAPHONE)) return ActionResult.PASS;
-            if (!(target instanceof ArmorStandEntity clicked)
-                    || !clicked.getCommandTags().contains("ultrasmod_supporter")) {
-                return ActionResult.PASS;
-            }
-            if (world.isClient) return ActionResult.SUCCESS;
-
-            Box groupArea = clicked.getBoundingBox().expand(20.0, 12.0, 20.0);
-            List<ArmorStandEntity> group = world.getEntitiesByType(
-                    EntityType.ARMOR_STAND,
-                    groupArea,
-                    stand -> stand.getCommandTags().contains("ultrasmod_supporter")
-            );
-            if (group.isEmpty()) return ActionResult.PASS;
-
-            boolean stopGroup = group.stream()
-                    .anyMatch(stand -> stand.getCommandTags().contains("ultrasmod_cheering"));
-            if (stopGroup) {
-                for (ArmorStandEntity stand : group) {
-                    stand.removeCommandTag("ultrasmod_cheering");
-                    stand.removeCommandTag("ultrasmod_jump");
-                    stand.removeCommandTag("ultrasmod_clap");
-                    stand.removeCommandTag("ultrasmod_flagwave");
-                    stand.removeCommandTag("ultrasmod_scarfwave");
-                    stand.setNoGravity(false);
-                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
-                    stand.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
-                    stand.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
-                    stand.setLeftArmRotation(new EulerAngle(-1.25f, 0.0f, -0.18f));
-                    stand.setRightArmRotation(new EulerAngle(-1.25f, 0.0f, 0.18f));
-                }
-                player.sendMessage(Text.literal("주변 응원단 동작을 모두 멈췄습니다."), true);
-            } else {
-                for (int i = group.size() - 1; i > 0; i--) {
-                    int j = world.random.nextInt(i + 1);
-                    ArmorStandEntity swap = group.get(i);
-                    group.set(i, group.get(j));
-                    group.set(j, swap);
-                }
-
-                int jumpers = group.size() >= 4
-                        ? Math.max(1, Math.round(group.size() * 0.15f)) : 0;
-                int flagWavers = Math.round(group.size() * 0.30f);
-                int scarfWavers = Math.round(group.size() * 0.30f);
-                if (group.size() > 1) {
-                    while (jumpers + flagWavers + scarfWavers > group.size() - 1) {
-                        if (scarfWavers > 0) scarfWavers--;
-                        else if (flagWavers > 0) flagWavers--;
-                        else if (jumpers > 0) jumpers--;
-                    }
-                } else {
-                    jumpers = 0;
-                    flagWavers = 0;
-                    scarfWavers = 0;
-                }
-
-                for (int i = 0; i < group.size(); i++) {
-                    ArmorStandEntity stand = group.get(i);
-                    stand.addCommandTag("ultrasmod_cheering");
-                    stand.removeCommandTag("ultrasmod_jump");
-                    stand.removeCommandTag("ultrasmod_clap");
-                    stand.removeCommandTag("ultrasmod_flagwave");
-                    stand.removeCommandTag("ultrasmod_scarfwave");
-                    stand.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
-                    stand.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
-
-                    if (i < jumpers) {
-                        stand.addCommandTag("ultrasmod_jump");
-                        stand.setNoGravity(true);
-                    } else if (i < jumpers + flagWavers) {
-                        stand.addCommandTag("ultrasmod_flagwave");
-                        stand.setNoGravity(false);
-                        stand.equipStack(EquipmentSlot.MAINHAND, new ItemStack(SUPPORTER_HAND_FLAG));
-                    } else if (i < jumpers + flagWavers + scarfWavers) {
-                        stand.addCommandTag("ultrasmod_scarfwave");
-                        stand.setNoGravity(false);
-                        stand.equipStack(EquipmentSlot.MAINHAND, new ItemStack(SUPPORTER_SCARF));
-                        stand.equipStack(EquipmentSlot.OFFHAND, new ItemStack(SUPPORTER_SCARF));
-                    } else {
-                        stand.addCommandTag("ultrasmod_clap");
-                        stand.setNoGravity(false);
-                    }
-                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
-                }
-
-                player.sendMessage(Text.literal(
-                        "응원 시작! 점프 " + jumpers + "명 · 깃발 " + flagWavers
-                                + "명 · 머플러 " + scarfWavers + "명 · 박수 "
-                                + (group.size() - jumpers - flagWavers - scarfWavers) + "명"
-                ), true);
-            }
-
-            world.playSound(null, clicked.getX(), clicked.getY(), clicked.getZ(),
-                    MEGAPHONE_SOUND, SoundCategory.PLAYERS, 1.0f, 1.0f);
-            return ActionResult.SUCCESS;
-        });
-
+        // The megaphone item configures supporter stands in the player's visible view cone.
         ServerTickEvents.END_WORLD_TICK.register(world -> {
             Box loadedWorld = new Box(-30_000_000.0, -2048.0, -30_000_000.0,
                     30_000_000.0, 2048.0, 30_000_000.0);

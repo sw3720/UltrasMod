@@ -179,13 +179,52 @@ d.ellipse((31,26,44,38),fill=(9,44,23),outline=(246,247,232),width=1)
 d.line((34,35,40,35),fill=(255,255,238),width=2); save("supporter_flag",im)
 save("supporter_hand_flag",im.copy())
 
-teams={"green":(23,135,70),"blue":(31,106,178),"red":(194,37,46),"yellow":(235,187,39),
-       "black":(35,40,37),"white":(228,231,218),"purple":(126,67,157),"orange":(224,112,28)}
+teams={"green":(22,138,69),"blue":(23,105,170),"red":(198,40,40),"yellow":(244,196,48),
+       "black":(32,32,32),"white":(238,238,238),"purple":(123,63,161),"orange":(232,117,25)}
 assets_root = OUT.parent
 model_item_dir = assets_root / "models" / "item"
 item_definition_dir = assets_root / "items"
 model_item_dir.mkdir(parents=True, exist_ok=True)
 item_definition_dir.mkdir(parents=True, exist_ok=True)
+
+def draw_large_hand_flag(rgb):
+    # Tall, large supporter pole flag with portrait cloth proportions.
+    im = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    dark = (15, 20, 16, 255)
+    pale = (244, 244, 228, 255)
+    d.line((8, 2, 8, 62), fill=dark, width=6)
+    d.line((8, 3, 8, 61), fill=(135, 104, 68, 255), width=3)
+    colour = tuple(rgb) + (255,)
+    d.polygon([(11, 5), (57, 7), (55, 58), (11, 55)], fill=colour, outline=dark)
+    d.line((13, 9, 54, 11), fill=pale, width=2)
+    d.line((12, 51, 53, 54), fill=pale, width=2)
+    d.polygon([(15, 15), (23, 16), (43, 45), (35, 45)], fill=pale)
+    d.polygon([(50, 15), (43, 16), (24, 45), (32, 45)], fill=(8, 28, 17, 255))
+    d.ellipse((29, 25, 44, 40), fill=dark, outline=pale, width=2)
+    d.polygon([(36, 27), (39, 32), (44, 33), (40, 37), (41, 42),
+               (36, 39), (31, 42), (32, 37), (28, 33), (34, 32)], fill=pale)
+    d.line((17, 12, 20, 50), fill=(255, 255, 255, 48), width=2)
+    d.line((47, 12, 44, 50), fill=(0, 0, 0, 55), width=2)
+    return im
+
+for team, rgb in teams.items():
+    flag_name = "supporter_hand_flag" if team == "green" else f"supporter_hand_flag_{team}"
+    draw_large_hand_flag(rgb).save(OUT / "item" / f"{flag_name}.png", optimize=True)
+    (model_item_dir / f"{flag_name}.json").write_text(json.dumps({
+        "parent":"minecraft:item/generated",
+        "textures":{"layer0":f"ultrasmod:item/{flag_name}"},
+        "display":{
+            "thirdperson_righthand":{"rotation":[0,-12,-18],"translation":[0,2,0],"scale":[3.0,3.0,3.0]},
+            "thirdperson_lefthand":{"rotation":[0,12,18],"translation":[0,2,0],"scale":[3.0,3.0,3.0]},
+            "firstperson_righthand":{"rotation":[0,-90,25],"translation":[1.0,3.0,1.0],"scale":[2.0,2.0,2.0]},
+            "firstperson_lefthand":{"rotation":[0,90,-25],"translation":[1.0,3.0,1.0],"scale":[2.0,2.0,2.0]}
+        }
+    }, indent=2) + "\n", encoding="utf-8")
+    (item_definition_dir / f"{flag_name}.json").write_text(json.dumps({
+        "model":{"type":"minecraft:model","model":f"ultrasmod:item/{flag_name}"}
+    }, indent=2) + "\n", encoding="utf-8")
+
 
 for name, colour in teams.items():
     # The held item visibly depicts a clothed armor stand, not a spawn egg.
@@ -302,8 +341,28 @@ sound_labels = {
     "en_us":{"subtitles.ultrasmod.megaphone_call":"Supporter megaphone","subtitles.ultrasmod.drum_hit":"Supporter drum","subtitles.ultrasmod.clapper":"Clapper"}
 }
 prop_labels = {
-    "ko_kr":{"item.ultrasmod.supporter_hand_flag":"응원용 흔드는 깃발","item.ultrasmod.supporter_scarf":"응원 머플러"},
-    "en_us":{"item.ultrasmod.supporter_hand_flag":"Handheld Supporter Flag","item.ultrasmod.supporter_scarf":"Supporter Scarf"}
+    "ko_kr":{
+        "item.ultrasmod.supporter_hand_flag":"대형기 (초록)",
+        "item.ultrasmod.supporter_hand_flag_blue":"대형기 (파랑)",
+        "item.ultrasmod.supporter_hand_flag_red":"대형기 (빨강)",
+        "item.ultrasmod.supporter_hand_flag_yellow":"대형기 (노랑)",
+        "item.ultrasmod.supporter_hand_flag_black":"대형기 (검정)",
+        "item.ultrasmod.supporter_hand_flag_white":"대형기 (흰색)",
+        "item.ultrasmod.supporter_hand_flag_purple":"대형기 (보라)",
+        "item.ultrasmod.supporter_hand_flag_orange":"대형기 (주황)",
+        "item.ultrasmod.supporter_scarf":"응원 머플러"
+    },
+    "en_us":{
+        "item.ultrasmod.supporter_hand_flag":"Large Supporter Flag (Green)",
+        "item.ultrasmod.supporter_hand_flag_blue":"Large Supporter Flag (Blue)",
+        "item.ultrasmod.supporter_hand_flag_red":"Large Supporter Flag (Red)",
+        "item.ultrasmod.supporter_hand_flag_yellow":"Large Supporter Flag (Yellow)",
+        "item.ultrasmod.supporter_hand_flag_black":"Large Supporter Flag (Black)",
+        "item.ultrasmod.supporter_hand_flag_white":"Large Supporter Flag (White)",
+        "item.ultrasmod.supporter_hand_flag_purple":"Large Supporter Flag (Purple)",
+        "item.ultrasmod.supporter_hand_flag_orange":"Large Supporter Flag (Orange)",
+        "item.ultrasmod.supporter_scarf":"Supporter Scarf"
+    }
 }
 for locale in ("ko_kr", "en_us"):
     path=OUT.parent/"lang"/f"{locale}.json"

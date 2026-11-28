@@ -52,6 +52,7 @@ public class UltrasFanStandItem extends Item {
         stand.setCustomNameVisible(false);
         stand.setSilent(true);
         stand.addCommandTag("ultrasmod_supporter");
+        stand.addCommandTag("ultrasmod_team_" + teamName());
 
         // Fixed raised-arm cheering pose. It is a real armor stand, not a spawn-egg mob.
         stand.setLeftArmRotation(new EulerAngle(-1.25f, 0.0f, -0.18f));
@@ -69,6 +70,19 @@ public class UltrasFanStandItem extends Item {
             context.getStack().decrement(1);
         }
         return ActionResult.CONSUME;
+    }
+
+    private String teamName() {
+        return switch (teamColor) {
+            case 0x1769AA -> "blue";
+            case 0xC62828 -> "red";
+            case 0xF4C430 -> "yellow";
+            case 0x202020 -> "black";
+            case 0xEEEEEE -> "white";
+            case 0x7B3FA1 -> "purple";
+            case 0xE87519 -> "orange";
+            default -> "green";
+        };
     }
 
     private static ItemStack dyedLeather(Item item, int color) {
