@@ -7,6 +7,11 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
 import javax.imageio.ImageIO;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import org.lwjgl.glfw.GLFW;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,7 +34,9 @@ public class FlagArtScreen extends Screen {
     private final int[][] pixels;
     private int selectedColor;
     private int canvasX, canvasY, pixelSize, paletteY;
-    private boolean bucketTool, backgroundMode;
+    private boolean bucketTool, backgroundMode, textTool;
+    private String textInput = "";
+    private int textSize = 10;
 
     public FlagArtScreen(boolean banner, int designId) {
         super(Text.literal(banner ? "응원 걸개 그림판" : "응원 깃발 그림판"));
@@ -52,16 +59,20 @@ public class FlagArtScreen extends Screen {
         paletteY = canvasY + canvasHeight * pixelSize + 10;
 
         addDrawableChild(ButtonWidget.builder(Text.literal("붓"), button -> {
-            bucketTool = false; backgroundMode = false;
-        }).dimensions(width / 2 - 150, paletteY + 23, 70, 20).build());
+            bucketTool = false; backgroundMode = false; textTool = false;
+        }).dimensions(width / 2 - 190, paletteY + 23, 70, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("채우기 도구"), button -> {
-            bucketTool = !bucketTool; backgroundMode = false;
+            bucketTool = !bucketTool; backgroundMode = false; textTool = false;
             button.setMessage(Text.literal(bucketTool ? "채우기: 켜짐" : "채우기: 꺼짐"));
-        }).dimensions(width / 2 - 75, paletteY + 23, 105, 20).build());
+        }).dimensions(width / 2 - 115, paletteY + 23, 100, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("배경색 지정"), button -> {
-            backgroundMode = !backgroundMode; bucketTool = false;
+            backgroundMode = !backgroundMode; bucketTool = false; textTool = false;
             button.setMessage(Text.literal(backgroundMode ? "배경색 선택 중" : "배경색 지정"));
-        }).dimensions(width / 2 + 35, paletteY + 23, 115, 20).build());
+        }).dimensions(width / 2 - 10, paletteY + 23, 100, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("글씨 도구"), button -> {
+            textTool = !textTool; bucketTool = false; backgroundMode = false;
+            button.setMessage(Text.literal(textTool ? "글씨 도구: 켜짐" : "글씨 도구"));
+        }).dimensions(width / 2 + 95, paletteY + 23, 95, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("도안 저장"), button -> saveDesign())
                 .dimensions(width / 2 - 105, height - 28, 100, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("전체 지우기"), button -> clearCanvas())
@@ -94,10 +105,41 @@ public class FlagArtScreen extends Screen {
                 context.fill(x + 16, paletteY, x + 18, paletteY + 16, 0xFFFFFF00);
             }
         }
-        String mode = backgroundMode ? "팔레트에서 이 깃발의 배경색을 선택하세요" :
-                bucketTool ? "채울 영역을 클릭하세요" : "마우스로 자유롭게 그리세요";
+        String mode = textTool
+                ? "글씨: " + (textInput.isEmpty() ? "키보드로 입력하세요" : textInput)
+                    + " · 크기 " + textSize + " · 캔버스를 클릭해 배치 · + / - 크기 조절"
+                : backgroundMode ? "팔레트에서 이 깃발의 배경색을 선택하세요"
+                : bucketTool ? "채울 영역을 클릭하세요" : "마우스로 자유롭게 그리세요";
         context.drawCenteredTextWithShadow(textRenderer, mode, width / 2, paletteY + 47, 0xFFFFFF);
         super.render(context, mouseX, mouseY, delta);
+    }
+
+    @Override
+    public boolean charTyped(char chr, int modifiers) {
+        if (textTool && !Character.isISOControl(chr) && textInput.length() < 32) {
+            textInput += chr;
+            return true;
+        }
+        return super.charTyped(chr, modifiers);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (textTool) {
+            if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+                if (!textInput.isEmpty()) textInput = textInput.substring(0, textInput.length() - 1);
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_EQUAL || keyCode == GLFW.GLFW_KEY_KP_ADD) {
+                textSize = Math.min(18, textSize + 1);
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_MINUS || keyCode == GLFW.GLFW_KEY_KP_SUBTRACT) {
+                textSize = Math.max(6, textSize - 1);
+                return true;
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -131,7 +173,9 @@ public class FlagArtScreen extends Screen {
         if (x < 0 || y < 0 || x >= renderedWidth || y >= renderedHeight) return false;
         if (backgroundMode) return true;
         int px = x / pixelSize, py = y / pixelSize;
-        if (bucketTool && allowBucket) floodFill(px, py, COLORS[selectedColor]);
+        if (textTool) {
+            if (allowBucket) stampText(px, py);
+        } else if (bucketTool && allowBucket) floodFill(px, py, COLORS[selectedColor]);
         else if (!bucketTool) pixels[py][px] = COLORS[selectedColor];
         return true;
     }
@@ -149,6 +193,24 @@ public class FlagArtScreen extends Screen {
             if (x + 1 < canvasWidth && pixels[y][x + 1] == target) queue.add(y * canvasWidth + x + 1);
             if (y > 0 && pixels[y - 1][x] == target) queue.add((y - 1) * canvasWidth + x);
             if (y + 1 < canvasHeight && pixels[y + 1][x] == target) queue.add((y + 1) * canvasWidth + x);
+        }
+    }
+
+    private void stampText(int x, int y) {
+        if (textInput.isBlank()) return;
+        BufferedImage overlay = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = overlay.createGraphics();
+        graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+        graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, textSize));
+        graphics.setColor(new Color(COLORS[selectedColor], true));
+        graphics.drawString(textInput, x, Math.min(canvasHeight - 1, y + textSize - 1));
+        graphics.dispose();
+
+        for (int py = 0; py < canvasHeight; py++) {
+            for (int px = 0; px < canvasWidth; px++) {
+                int color = overlay.getRGB(px, py);
+                if ((color >>> 24) != 0) pixels[py][px] = color;
+            }
         }
     }
 
@@ -192,17 +254,22 @@ public class FlagArtScreen extends Screen {
                     """);
             BufferedImage animation = buildFlutterSheet();
             ImageIO.write(animation, "PNG", textureDir.resolve(textureName() + ".png").toFile());
-            Files.writeString(textureDir.resolve(textureName() + ".png.mcmeta"), """
-                    {
-                      "animation": {
-                        "width": %d,
-                        "height": %d,
-                        "frametime": 3,
-                        "interpolate": true,
-                        "frames": [0, 1, 2, 3]
-                      }
-                    }
-                    """.formatted(canvasWidth, canvasHeight));
+            Path metadata = textureDir.resolve(textureName() + ".png.mcmeta");
+            if (banner) {
+                Files.deleteIfExists(metadata);
+            } else {
+                Files.writeString(metadata, """
+                        {
+                          "animation": {
+                            "width": %d,
+                            "height": %d,
+                            "frametime": 3,
+                            "interpolate": true,
+                            "frames": [0, 1, 2, 3]
+                          }
+                        }
+                        """.formatted(canvasWidth, canvasHeight));
+            }
             if (client.player != null) client.player.sendMessage(Text.literal(
                     "개별 도안 저장 완료. 리소스 팩 'UltrasMod_Custom_Art'를 켜고 F3+T를 눌러 적용하세요."
             ), false);
@@ -214,6 +281,12 @@ public class FlagArtScreen extends Screen {
     }
 
     private BufferedImage buildFlutterSheet() {
+        if (banner) {
+            BufferedImage still = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
+            for (int y = 0; y < canvasHeight; y++)
+                for (int x = 0; x < canvasWidth; x++) still.setRGB(x, y, pixels[y][x]);
+            return still;
+        }
         BufferedImage image = new BufferedImage(canvasWidth, canvasHeight * 4, BufferedImage.TYPE_INT_ARGB);
         for (int frame = 0; frame < 4; frame++) {
             for (int x = 0; x < canvasWidth; x++) {

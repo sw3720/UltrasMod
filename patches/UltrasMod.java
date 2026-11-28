@@ -342,6 +342,9 @@ public class UltrasMod implements ModInitializer {
     @Override
     public void onInitialize() {
         // Only actively cheering stands are updated. Idle stands are never scanned.
-        ServerTickEvents.END_WORLD_TICK.register(UltrasMod::tickActiveSupporters);
+        ServerTickEvents.END_WORLD_TICK.register(world -> {
+            tickActiveSupporters(world);
+            SupporterSmokeItem.tick(world);
+        });
     }
 }

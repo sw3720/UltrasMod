@@ -91,7 +91,7 @@ public class SupporterFlagBlock extends Block {
         if (part >= FLAG_WIDTH * FLAG_HEIGHT) return MotionToggleResult.INVALID;
 
         Direction facing = clicked.get(FACING);
-        Direction across = facing.rotateYClockwise();
+        Direction across = facing.rotateYCounterclockwise();
         BlockPos topLeft = clickedPos.offset(across, -column).up(row);
 
         Map<BlockPos, FlagMotion> motions = ACTIVE_MOTIONS.computeIfAbsent(world, key -> new HashMap<>());
@@ -118,7 +118,7 @@ public class SupporterFlagBlock extends Block {
     }
 
     private boolean isCompleteAssembly(World world, BlockPos topLeft, Direction facing, int design) {
-        Direction across = facing.rotateYClockwise();
+        Direction across = facing.rotateYCounterclockwise();
         for (int row = 0; row < FLAG_HEIGHT; row++) {
             for (int column = 0; column < FLAG_WIDTH; column++) {
                 BlockPos piecePos = topLeft.offset(across, column).down(row);
@@ -152,7 +152,7 @@ public class SupporterFlagBlock extends Block {
         int dy = motion.direction;
 
         Direction facing = state.get(FACING);
-        Direction across = facing.rotateYClockwise();
+        Direction across = facing.rotateYCounterclockwise();
         int design = state.get(DESIGN);
         List<BlockPos> sources = new ArrayList<>(FLAG_WIDTH * FLAG_HEIGHT);
         List<BlockState> states = new ArrayList<>(FLAG_WIDTH * FLAG_HEIGHT);

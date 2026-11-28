@@ -39,7 +39,7 @@ public class SupporterCanvasItem extends BlockItem {
         }
         BlockPos anchor = context.getBlockPos().offset(context.getSide());
         Direction facing = context.getHorizontalPlayerFacing().getOpposite();
-        Direction across = facing.rotateYClockwise();
+        Direction across = facing.rotateYCounterclockwise();
 
         for (int row = 0; row < height; row++) {
             for (int column = 0; column < width; column++) {

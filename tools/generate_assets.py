@@ -108,17 +108,23 @@ def flag_frame(kind, frame):
 
 
 for kind, (frame_width, frame_height) in {"flag": (96, 160), "banner": (256, 64)}.items():
-    sheet = Image.new("RGBA", (frame_width, frame_height * 4))
-    for frame in range(4):
+    # Flags wave; large supporter banners stay rigid and readable.
+    frame_count = 4 if kind == "flag" else 1
+    sheet = Image.new("RGBA", (frame_width, frame_height * frame_count))
+    for frame in range(frame_count):
         sheet.paste(flag_frame(kind, frame), (0, frame * frame_height))
     texture_path = OUT / "block" / f"{kind}_cloth.png"
     sheet.save(texture_path, optimize=True)
-    texture_path.with_name(texture_path.name + ".mcmeta").write_text(
-        json.dumps({"animation": {
-            "width": frame_width, "height": frame_height,
-            "frametime": 3, "interpolate": True, "frames": [0, 1, 2, 3]
-        }}, indent=2) + "\n", encoding="utf-8"
-    )
+    metadata_path = texture_path.with_name(texture_path.name + ".mcmeta")
+    if frame_count > 1:
+        metadata_path.write_text(
+            json.dumps({"animation": {
+                "width": frame_width, "height": frame_height,
+                "frametime": 3, "interpolate": True, "frames": [0, 1, 2, 3]
+            }}, indent=2) + "\n", encoding="utf-8"
+        )
+    else:
+        metadata_path.unlink(missing_ok=True)
 
 def icon():
     return Image.new("RGBA",(64,64),(0,0,0,0))
@@ -446,7 +452,7 @@ def write_canvas_models(block_name, texture_name, width, height):
                     "to": [16, 16, 16.0],
                     "faces": {
                         "north": {"uv": [u0, v0, u1, v1], "texture": "#cloth"},
-                        "south": {"uv": [u0, v0, u1, v1], "texture": "#cloth"}
+                        "south": {"uv": [u1, v0, u0, v1], "texture": "#cloth"}
                     }
                 }]
             }
