@@ -23,7 +23,8 @@ import net.minecraft.world.World;
 import java.util.List;
 
 public class SupporterMegaphoneItem extends Item {
-    private static final double VIEW_RANGE = 32.0;
+    // Scan the full visible render area rather than imposing the old 32-block cap.
+    private static final double VIEW_RANGE = 512.0;
     private static final double MIN_VIEW_DOT = 0.70;
     private final SoundEvent sound;
 
@@ -38,9 +39,9 @@ public class SupporterMegaphoneItem extends Item {
 
         Vec3d eye = user.getEyePos();
         Vec3d look = user.getRotationVec(1.0F).normalize();
-        Box searchArea = user.getBoundingBox()
-                .stretch(look.multiply(VIEW_RANGE))
-                .expand(10.0, 7.0, 10.0);
+        // Collect every loaded supporter in the player's surrounding render area;
+        // the view-direction and raycast checks below discard off-screen/occluded stands.
+        Box searchArea = user.getBoundingBox().expand(VIEW_RANGE);
 
         List<ArmorStandEntity> visible = world.getEntitiesByType(
                 EntityType.ARMOR_STAND, searchArea,
