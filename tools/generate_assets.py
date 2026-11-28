@@ -314,10 +314,9 @@ def write_canvas_models(block_name, texture_name, width, height):
     rotations = {"north": 0, "east": 90, "south": 180, "west": 270}
     for design in range(DESIGN_SLOTS):
         numbered_texture = f"{texture_name}_{design:02d}"
-        if design != 0:
-            shutil.copyfile(base_texture, textures_dir / f"{numbered_texture}.png")
-            if base_meta.exists():
-                shutil.copyfile(base_meta, textures_dir / f"{numbered_texture}.png.mcmeta")
+        shutil.copyfile(base_texture, textures_dir / f"{numbered_texture}.png")
+        if base_meta.exists():
+            shutil.copyfile(base_meta, textures_dir / f"{numbered_texture}.png.mcmeta")
         for part in range(36):
             column = part % width
             row = part // width

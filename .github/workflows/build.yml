@@ -71,6 +71,8 @@ jobs:
           test -s "$JAR"
           jar tf "$JAR" > /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/textures/block/flag_cloth.png' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/textures/block/flag_cloth_00.png' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/textures/block/banner_cloth_00.png' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/blockstates/supporter_flag.json' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/models/block/supporter_banner_part_35.json' /tmp/ultrasmod-jar-contents.txt
           grep -q 'kr/ultrasmod/item/SupporterCanvasItem.class' /tmp/ultrasmod-jar-contents.txt
