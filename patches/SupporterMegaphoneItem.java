@@ -1,6 +1,5 @@
 package kr.ultrasmod.item;
 
-import kr.ultrasmod.UltrasMod;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.decoration.ArmorStandEntity;
@@ -21,30 +20,11 @@ import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Player-controlled bulk supporter choreography.
- * Sneak-use cycles the active action; normal use applies it to every visible supporter.
- */
+/** Toggles one simple jump animation for every supporter visible to the player. */
 public class SupporterMegaphoneItem extends Item {
     private static final double VIEW_RANGE = 512.0;
     private static final double MIN_VIEW_DOT = 0.70;
-
-    private enum CheerMode {
-        CLAP("박수"),
-        JUMP("점프"),
-        BIG_FLAG("대형기 흔들기"),
-        SCARF("머플러 흔들기"),
-        STOP("정지");
-
-        private final String label;
-        CheerMode(String label) { this.label = label; }
-    }
-
-    private static final Map<UUID, Integer> PLAYER_MODES = new ConcurrentHashMap<>();
     private final SoundEvent sound;
 
     public SupporterMegaphoneItem(SoundEvent sound, Settings settings) {
@@ -55,19 +35,6 @@ public class SupporterMegaphoneItem extends Item {
     @Override
     public ActionResult use(World world, PlayerEntity user, Hand hand) {
         if (world.isClient) return ActionResult.SUCCESS;
-
-        int selected = PLAYER_MODES.getOrDefault(user.getUuid(), 0);
-        if (user.isSneaking()) {
-            selected = (selected + 1) % CheerMode.values().length;
-            PLAYER_MODES.put(user.getUuid(), selected);
-            user.sendMessage(Text.literal(
-                    "확성기 동작 선택: " + CheerMode.values()[selected].label
-                            + " · 일반 우클릭으로 시야 안 응원단에 적용"
-            ), true);
-            playMegaphone(world, user);
-            user.getItemCooldownManager().set(user.getStackInHand(hand), 5);
-            return ActionResult.SUCCESS;
-        }
 
         Vec3d eye = user.getEyePos();
         Vec3d look = user.getRotationVec(1.0F).normalize();
@@ -81,48 +48,32 @@ public class SupporterMegaphoneItem extends Item {
 
         if (visible.isEmpty()) {
             user.sendMessage(Text.literal("시야 안에 설정할 응원 거치대가 없습니다."), true);
-            user.getItemCooldownManager().set(user.getStackInHand(hand), 5);
+            user.getItemCooldownManager().set(user.getStackInHand(hand), 8);
             return ActionResult.SUCCESS;
         }
 
-        CheerMode mode = CheerMode.values()[selected];
-        for (ArmorStandEntity stand : visible) {
-            clearCheering(stand);
-            if (mode == CheerMode.STOP) continue;
-
-            stand.addCommandTag("ultrasmod_cheering");
-            switch (mode) {
-                case CLAP -> stand.addCommandTag("ultrasmod_clap");
-                case JUMP -> {
-                    stand.addCommandTag("ultrasmod_jump");
-                    stand.setNoGravity(true);
-                }
-                case BIG_FLAG -> {
-                    stand.addCommandTag("ultrasmod_flagwave");
-                    stand.equipStack(EquipmentSlot.MAINHAND,
-                            new ItemStack(UltrasMod.handFlagForSupporter(stand)));
-                }
-                case SCARF -> {
-                    stand.addCommandTag("ultrasmod_scarfwave");
-                    stand.equipStack(EquipmentSlot.MAINHAND, new ItemStack(UltrasMod.SUPPORTER_SCARF));
-                    stand.equipStack(EquipmentSlot.OFFHAND, new ItemStack(UltrasMod.SUPPORTER_SCARF));
-                }
-                case STOP -> { }
+        boolean stop = visible.stream()
+                .anyMatch(stand -> stand.getCommandTags().contains("ultrasmod_cheering"));
+        if (stop) {
+            for (ArmorStandEntity stand : visible) clearCheering(stand);
+            user.sendMessage(Text.literal("시야 안 응원단의 점프를 멈췄습니다."), true);
+        } else {
+            for (ArmorStandEntity stand : visible) {
+                clearCheering(stand);
+                stand.addCommandTag("ultrasmod_cheering");
+                stand.addCommandTag("ultrasmod_jump");
+                stand.setNoGravity(true);
+                stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
             }
-            stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
+            user.sendMessage(Text.literal(
+                    "응원 시작! 시야 안 응원 거치대 " + visible.size() + "개 모두 점프"
+            ), true);
         }
 
-        user.sendMessage(Text.literal(
-                "시야 안 응원 거치대 " + visible.size() + "개에 '" + mode.label + "' 적용"
-        ), true);
-        playMegaphone(world, user);
-        user.getItemCooldownManager().set(user.getStackInHand(hand), 5);
-        return ActionResult.SUCCESS;
-    }
-
-    private void playMegaphone(World world, PlayerEntity user) {
         world.playSound(null, user.getX(), user.getY(), user.getZ(),
                 sound, SoundCategory.PLAYERS, 1.0f, 1.0f);
+        user.getItemCooldownManager().set(user.getStackInHand(hand), 10);
+        return ActionResult.SUCCESS;
     }
 
     private static void clearCheering(ArmorStandEntity stand) {

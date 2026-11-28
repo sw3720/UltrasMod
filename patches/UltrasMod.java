@@ -9,7 +9,6 @@ import kr.ultrasmod.item.UltrasFanStandItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.EulerAngle;
@@ -98,7 +97,6 @@ public class UltrasMod implements ModInitializer {
 
                         // 응원 도구
                         entries.add(SUPPORTER_SCARF);
-                        entries.add(SUPPORTER_HAND_FLAG);
                         entries.add(MEGAPHONE);
                         entries.add(SUPPORTER_DRUM);
                         entries.add(CLAPPER);
@@ -172,47 +170,18 @@ public class UltrasMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // The megaphone item configures supporter stands in the player's visible view cone.
+        // Every supporter stand performs the same simple jump animation.
         ServerTickEvents.END_WORLD_TICK.register(world -> {
             Box loadedWorld = new Box(-30_000_000.0, -2048.0, -30_000_000.0,
                     30_000_000.0, 2048.0, 30_000_000.0);
             long tick = world.getTime();
             for (ArmorStandEntity stand : world.getEntitiesByType(EntityType.ARMOR_STAND, loadedWorld,
-                    entity -> entity.getCommandTags().contains("ultrasmod_cheering"))) {
-                if (stand.getCommandTags().contains("ultrasmod_jump")) {
-                    stand.setLeftArmRotation(new EulerAngle(-1.75f, 0.0f, -0.30f));
-                    stand.setRightArmRotation(new EulerAngle(-1.75f, 0.0f, 0.30f));
-                    double jump = Math.max(0.0,
-                            Math.sin((tick + stand.getId() * 3.0) * Math.PI / 12.0)) * 0.24;
-                    stand.setPosition(stand.getX(), Math.floor(stand.getY()) + jump, stand.getZ());
-                } else if (stand.getCommandTags().contains("ultrasmod_flagwave")) {
-                    // A roughly 3 m large flag is swept broadly from left to right.
-                    // Yaw is the main movement; pitch/roll only add small natural follow-through.
-                    double phase = (tick + stand.getId() * 5.0) * Math.PI / 15.0;
-                    float sweep = (float) Math.sin(phase);
-                    float follow = (float) Math.cos(phase);
-                    stand.setRightArmRotation(new EulerAngle(
-                            -1.18f + follow * 0.14f,
-                            sweep * 1.28f,
-                            -0.20f + sweep * 0.18f));
-                    stand.setLeftArmRotation(new EulerAngle(-1.35f, -0.12f, 0.18f));
-                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
-                } else if (stand.getCommandTags().contains("ultrasmod_scarfwave")) {
-                    double phase = (tick + stand.getId() * 4.0) * Math.PI / 24.0;
-                    float sway = (float) Math.sin(phase);
-                    float lift = (float) Math.cos(phase);
-                    stand.setLeftArmRotation(new EulerAngle(
-                            -2.72f + lift * 0.16f, -0.18f + sway * 0.16f, -0.58f - sway * 0.18f));
-                    stand.setRightArmRotation(new EulerAngle(
-                            -2.72f - lift * 0.16f, 0.18f + sway * 0.16f, 0.58f + sway * 0.18f));
-                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
-                } else if (stand.getCommandTags().contains("ultrasmod_clap")) {
-                    boolean handsTogether = (tick % 12L) < 5L;
-                    float roll = handsTogether ? 0.10f : 0.58f;
-                    stand.setLeftArmRotation(new EulerAngle(-1.65f, 0.0f, -roll));
-                    stand.setRightArmRotation(new EulerAngle(-1.65f, 0.0f, roll));
-                    stand.setPosition(stand.getX(), Math.floor(stand.getY()), stand.getZ());
-                }
+                    entity -> entity.getCommandTags().contains("ultrasmod_jump"))) {
+                stand.setLeftArmRotation(new EulerAngle(-1.75f, 0.0f, -0.30f));
+                stand.setRightArmRotation(new EulerAngle(-1.75f, 0.0f, 0.30f));
+                double jump = Math.max(0.0,
+                        Math.sin((tick + stand.getId() * 3.0) * Math.PI / 12.0)) * 0.24;
+                stand.setPosition(stand.getX(), Math.floor(stand.getY()) + jump, stand.getZ());
             }
         });
     }

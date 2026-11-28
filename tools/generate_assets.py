@@ -43,7 +43,7 @@ def flag_frame(kind, frame):
     phase = frame * math.pi / 2
     for y in range(h):
         for x in range(w):
-            wave = math.sin(x / max(3.0, w / 10) + phase) * (h * .012)
+            wave = math.sin(x / max(3.0, w / 10) + phase) * (h * .035)
             fold = math.sin(x / max(3.0, w / 9) + phase) * 3.5 + math.cos(x / max(3.0, w / 5) - phase) * 1.4
             grain = ((x * 23 + y * 17 + x * y * 3) % 7) - 3
             if kind == "flag":
@@ -108,7 +108,7 @@ for kind, (frame_width, frame_height) in {"flag": (96, 160), "banner": (256, 64)
     texture_path.with_name(texture_path.name + ".mcmeta").write_text(
         json.dumps({"animation": {
             "width": frame_width, "height": frame_height,
-            "frametime": 4, "interpolate": True, "frames": [0, 1, 2, 3]
+            "frametime": 3, "interpolate": True, "frames": [0, 1, 2, 3]
         }}, indent=2) + "\n", encoding="utf-8"
     )
 
