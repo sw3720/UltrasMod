@@ -52,12 +52,14 @@ public class UltrasMod implements ModInitializer {
     private static final class CheerState {
         private final ArmorStandEntity stand;
         private final double baseY;
+        private final long jumpPhaseOffset;
         private int mode;
 
-        private CheerState(ArmorStandEntity stand, double baseY, int mode) {
+        private CheerState(ArmorStandEntity stand, double baseY, int mode, long jumpPhaseOffset) {
             this.stand = stand;
             this.baseY = baseY;
             this.mode = mode;
+            this.jumpPhaseOffset = jumpPhaseOffset;
         }
     }
 
@@ -211,7 +213,9 @@ public class UltrasMod implements ModInitializer {
             // Recover legacy v0.4.9 stands that may have been left floating above their installation point.
             double baseY = stand.getCommandTags().contains("ultrasmod_jump")
                     ? findGroundPosition(world, stand) : stand.getY();
-            state = new CheerState(stand, baseY, mode);
+            // Give each placed stand its own stable phase so a crowd does not jump together.
+            long jumpPhaseOffset = Math.floorMod((long) stand.getUuid().hashCode(), JUMP_CYCLE_TICKS);
+            state = new CheerState(stand, baseY, mode, jumpPhaseOffset);
             active.put(stand.getUuid(), state);
         } else {
             state.mode = mode;
@@ -265,10 +269,9 @@ public class UltrasMod implements ModInitializer {
         Map<UUID, CheerState> active = ACTIVE_SUPPORTERS.get(world);
         if (active == null || active.isEmpty()) return;
 
-        // One world clock is shared by every supporter, including groups activated
-        // at different moments. No entity-id offsets or per-stand clocks are used.
+        // A shared clock keeps animation smooth, while each stand applies its own
+        // stable phase offset to create staggered, out-of-sync jumping.
         long time = world.getTime();
-        long jumpPhase = Math.floorMod(time, JUMP_CYCLE_TICKS);
         float wave = (float) Math.sin(time * 0.38);
         float clapCycle = (float) (0.5 - 0.5 * Math.cos(time * 0.70));
 
@@ -289,9 +292,9 @@ public class UltrasMod implements ModInitializer {
 
             switch (state.mode) {
                 case CHEER_JUMP -> {
-                    // All stands use the exact same world-time phase and displacement.
-                    // The curve approximates a normal player's ~0.42 initial jump,
-                    // with gravity-equivalent deceleration and a short grounded beat.
+                    // Each stand jumps at a different point in the cycle, like a real crowd.
+                    // The curve gives a short rise, fall, and grounded beat.
+                    long jumpPhase = Math.floorMod(time + state.jumpPhaseOffset, JUMP_CYCLE_TICKS);
                     double jumpHeight = Math.max(0.0,
                             0.42 * jumpPhase - 0.04 * jumpPhase * jumpPhase);
                     stand.setPosition(stand.getX(), state.baseY + jumpHeight, stand.getZ());
