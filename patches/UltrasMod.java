@@ -7,6 +7,7 @@ import kr.ultrasmod.item.SupporterCanvasItem;
 import kr.ultrasmod.item.UltrasFanStandItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.util.math.Box;
@@ -24,6 +25,8 @@ import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.ActionResult;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
@@ -147,14 +150,41 @@ public class UltrasMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // Existing supporter figures remain real armor stands; animate their cheering in place.
+        // Megaphone toggles the cheering animation only on the armor stand the player targets.
+        UseEntityCallback.EVENT.register((player, world, hand, target, hitResult) -> {
+            if (!player.getStackInHand(hand).isOf(MEGAPHONE)) return ActionResult.PASS;
+            if (!(target instanceof ArmorStandEntity stand)
+                    || !Text.literal("울트라스").equals(stand.getCustomName())) {
+                return ActionResult.PASS;
+            }
+            if (world.isClient) return ActionResult.SUCCESS;
+
+            boolean wasCheering = stand.getCommandTags().contains("ultrasmod_cheering");
+            if (wasCheering) {
+                stand.removeCommandTag("ultrasmod_cheering");
+                stand.setNoGravity(false);
+                stand.setPosition(stand.getX(), stand.getBlockPos().getY(), stand.getZ());
+                stand.setLeftArmRotation(new EulerAngle(-110.0f, 0.0f, -28.0f));
+                stand.setRightArmRotation(new EulerAngle(-110.0f, 0.0f, 28.0f));
+                player.sendMessage(Text.literal("응원 동작을 멈췄습니다."), true);
+            } else {
+                stand.addCommandTag("ultrasmod_cheering");
+                stand.setNoGravity(true);
+                player.sendMessage(Text.literal("응원 동작을 시작했습니다!"), true);
+            }
+            world.playSound(null, stand.getX(), stand.getY(), stand.getZ(),
+                    MEGAPHONE_SOUND, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            return ActionResult.SUCCESS;
+        });
+
+        // Only supporters enabled with a megaphone are animated; all others stay still.
         ServerTickEvents.END_WORLD_TICK.register(world -> {
             Box loadedWorld = new Box(-30_000_000.0, -2048.0, -30_000_000.0,
                     30_000_000.0, 2048.0, 30_000_000.0);
             long tick = world.getTime();
             for (ArmorStandEntity stand : world.getEntitiesByType(EntityType.ARMOR_STAND, loadedWorld,
-                    entity -> Text.literal("울트라스").equals(entity.getCustomName()))) {
-                stand.setNoGravity(true);
+                    entity -> Text.literal("울트라스").equals(entity.getCustomName())
+                            && entity.getCommandTags().contains("ultrasmod_cheering"))) {
                 int phase = (int) (tick % 24L);
                 if (phase < 6) {
                     stand.setLeftArmRotation(new EulerAngle(-92.0f, 0.0f, -10.0f));

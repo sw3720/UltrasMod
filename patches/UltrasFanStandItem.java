@@ -51,6 +51,7 @@ public class UltrasFanStandItem extends Item {
         stand.setCustomName(net.minecraft.text.Text.literal("울트라스"));
         stand.setCustomNameVisible(false);
         stand.setSilent(true);
+        stand.addCommandTag("ultrasmod_supporter");
 
         // Fixed raised-arm cheering pose. It is a real armor stand, not a spawn-egg mob.
         stand.setLeftArmRotation(new EulerAngle(-110.0f, 0.0f, -28.0f));
