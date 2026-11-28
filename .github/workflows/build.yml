@@ -42,7 +42,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           python tools/generate_assets.py UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/textures
-          sed -i 's/^mod_version=0.3.5$/mod_version=0.4.2/' UltrasMod_Fabric_1.21.4/gradle.properties
+          sed -i 's/^mod_version=0.3.5$/mod_version=0.4.3/' UltrasMod_Fabric_1.21.4/gradle.properties
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/megaphone_call.ogg
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/drum_hit.ogg
           test -s UltrasMod_Fabric_1.21.4/src/main/resources/assets/ultrasmod/sounds/clapper.ogg
@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          JAR=build/libs/ultras-mod-0.4.2.jar
+          JAR=build/libs/ultras-mod-0.4.3.jar
           test -s "$JAR"
           jar tf "$JAR" > /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/textures/block/flag_cloth.png' /tmp/ultrasmod-jar-contents.txt
@@ -82,6 +82,10 @@ jobs:
           grep -q 'assets/ultrasmod/models/item/ultras_supporter_stand_green.json' /tmp/ultrasmod-jar-contents.txt
           if grep -q 'ultras_fan_spawn_egg' /tmp/ultrasmod-jar-contents.txt; then echo 'Legacy spawn-egg assets must not be packaged'; exit 1; fi
           if grep -q 'kr/ultrasmod/entity/UltrasFanEntity.class' /tmp/ultrasmod-jar-contents.txt; then echo 'Zombie-based ultras entity must not be packaged'; exit 1; fi
+          grep -q 'assets/ultrasmod/items/supporter_hand_flag.json' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/models/item/supporter_hand_flag.json' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/items/supporter_scarf.json' /tmp/ultrasmod-jar-contents.txt
+          grep -q 'assets/ultrasmod/models/item/supporter_scarf.json' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/sounds/megaphone_call.ogg' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/sounds/drum_hit.ogg' /tmp/ultrasmod-jar-contents.txt
           grep -q 'assets/ultrasmod/sounds/clapper.ogg' /tmp/ultrasmod-jar-contents.txt
@@ -91,8 +95,8 @@ jobs:
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
-          name: UltrasMod-Fabric-1.21.4-v0.4.2
-          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.4.2.jar
+          name: UltrasMod-Fabric-1.21.4-v0.4.3
+          path: UltrasMod_Fabric_1.21.4/build/libs/ultras-mod-0.4.3.jar
           if-no-files-found: error
           retention-days: 30
 
