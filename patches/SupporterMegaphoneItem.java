@@ -2,11 +2,9 @@ package kr.ultrasmod.item;
 
 import kr.ultrasmod.UltrasMod;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
@@ -15,10 +13,10 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
-import net.minecraft.util.math.EulerAngle;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
+import net.minecraft.server.world.ServerWorld;
 
 import java.util.List;
 
@@ -61,11 +59,9 @@ public class SupporterMegaphoneItem extends Item {
 
         int currentMode = getMode(visible.get(0));
         int nextMode = currentMode < 0 ? JUMP : (currentMode + 1) % 4;
+        if (!(world instanceof ServerWorld serverWorld)) return ActionResult.PASS;
         for (ArmorStandEntity stand : visible) {
-            applyMode(stand, nextMode);
-            if (world instanceof net.minecraft.server.world.ServerWorld serverWorld) {
-                UltrasMod.trackCheeringStand(serverWorld, stand);
-            }
+            UltrasMod.setCheeringMode(serverWorld, stand, nextMode);
         }
 
         user.sendMessage(Text.literal(
@@ -84,52 +80,6 @@ public class SupporterMegaphoneItem extends Item {
         if (stand.getCommandTags().contains("ultrasmod_hands")) return HANDS;
         if (stand.getCommandTags().contains("ultrasmod_scarfwave")) return SCARF;
         return -1;
-    }
-
-    private static void applyMode(ArmorStandEntity stand, int mode) {
-        clearCheering(stand);
-        stand.addCommandTag("ultrasmod_cheering");
-
-        switch (mode) {
-            case JUMP -> {
-                stand.addCommandTag("ultrasmod_jump");
-                stand.setNoGravity(false);
-                stand.setVelocity(0.0, 0.0, 0.0);
-                stand.setLeftArmRotation(new EulerAngle(-2.55f, 0.0f, -0.28f));
-                stand.setRightArmRotation(new EulerAngle(-2.55f, 0.0f, 0.28f));
-            }
-            case CLAP -> {
-                stand.addCommandTag("ultrasmod_clap");
-                stand.setNoGravity(true);
-            }
-            case HANDS -> {
-                stand.addCommandTag("ultrasmod_hands");
-                stand.setNoGravity(true);
-            }
-            case SCARF -> {
-                stand.addCommandTag("ultrasmod_scarfwave");
-                stand.setNoGravity(true);
-                ItemStack scarf = new ItemStack(UltrasMod.SUPPORTER_SCARF);
-                stand.equipStack(EquipmentSlot.MAINHAND, scarf.copy());
-                stand.equipStack(EquipmentSlot.OFFHAND, scarf.copy());
-            }
-            default -> throw new IllegalArgumentException("Unknown cheering mode: " + mode);
-        }
-    }
-
-    private static void clearCheering(ArmorStandEntity stand) {
-        stand.removeCommandTag("ultrasmod_cheering");
-        stand.removeCommandTag("ultrasmod_jump");
-        stand.removeCommandTag("ultrasmod_clap");
-        stand.removeCommandTag("ultrasmod_hands");
-        stand.removeCommandTag("ultrasmod_flagwave");
-        stand.removeCommandTag("ultrasmod_scarfwave");
-        stand.setNoGravity(false);
-        stand.setVelocity(0.0, 0.0, 0.0);
-        stand.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
-        stand.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
-        stand.setLeftArmRotation(new EulerAngle(-1.25f, 0.0f, -0.18f));
-        stand.setRightArmRotation(new EulerAngle(-1.25f, 0.0f, 0.18f));
     }
 
     private static boolean isVisibleToPlayer(World world, PlayerEntity user, Vec3d eye,

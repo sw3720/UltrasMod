@@ -9,7 +9,6 @@ import kr.ultrasmod.item.SupporterCanvasItem;
 import kr.ultrasmod.item.UltrasFanStandItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -31,10 +30,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.ActionResult;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 
@@ -44,7 +40,26 @@ public class UltrasMod implements ModInitializer {
     private static final RegistryKey<ItemGroup> ULTRAS_GROUP_KEY =
             RegistryKey.of(RegistryKeys.ITEM_GROUP, id("ultras"));
 
-    private static final Map<ServerWorld, Set<UUID>> ACTIVE_SUPPORTERS = new WeakHashMap<>();
+    private static final Map<ServerWorld, Map<UUID, CheerState>> ACTIVE_SUPPORTERS = new WeakHashMap<>();
+
+    private static final int CHEER_JUMP = 0;
+    private static final int CHEER_CLAP = 1;
+    private static final int CHEER_HANDS = 2;
+    private static final int CHEER_SCARF = 3;
+
+    private static final class CheerState {
+        private final ArmorStandEntity stand;
+        private final double baseY;
+        private int mode;
+        private long startedAt;
+
+        private CheerState(ArmorStandEntity stand, double baseY, int mode, long startedAt) {
+            this.stand = stand;
+            this.baseY = baseY;
+            this.mode = mode;
+            this.startedAt = startedAt;
+        }
+    }
 
     // 깃발은 3×5칸, 걸개는 12×3칸으로 한 번에 펼쳐진다.
     public static final Block SUPPORTER_FLAG_BLOCK = registerCanvasBlock("supporter_flag",
@@ -181,51 +196,125 @@ public class UltrasMod implements ModInitializer {
         return SUPPORTER_HAND_FLAG;
     }
 
-    public static void trackCheeringStand(ServerWorld world, ArmorStandEntity stand) {
-        ACTIVE_SUPPORTERS.computeIfAbsent(world, key -> new HashSet<>()).add(stand.getUuid());
+    /**
+     * Starts a deterministic animation for one supporter stand.
+     * The stand is kept at a fixed baseline and its animation is calculated
+     * from elapsed ticks, so no accumulated velocity can make it drift upward.
+     */
+    public static void setCheeringMode(ServerWorld world, ArmorStandEntity stand, int mode) {
+        Map<UUID, CheerState> active = ACTIVE_SUPPORTERS.computeIfAbsent(world, key -> new java.util.HashMap<>());
+        CheerState state = active.get(stand.getUuid());
+
+        if (state == null) {
+            // Recover legacy v0.4.9 stands that may have been left floating above their installation point.
+            double baseY = stand.getCommandTags().contains("ultrasmod_jump")
+                    ? findGroundPosition(world, stand) : stand.getY();
+            state = new CheerState(stand, baseY, mode, world.getTime());
+            active.put(stand.getUuid(), state);
+        } else {
+            state.mode = mode;
+            state.startedAt = world.getTime();
+        }
+
+        stand.removeCommandTag("ultrasmod_cheering");
+        stand.removeCommandTag("ultrasmod_jump");
+        stand.removeCommandTag("ultrasmod_clap");
+        stand.removeCommandTag("ultrasmod_hands");
+        stand.removeCommandTag("ultrasmod_scarfwave");
+        stand.addCommandTag("ultrasmod_cheering");
+
+        switch (mode) {
+            case CHEER_JUMP -> stand.addCommandTag("ultrasmod_jump");
+            case CHEER_CLAP -> stand.addCommandTag("ultrasmod_clap");
+            case CHEER_HANDS -> stand.addCommandTag("ultrasmod_hands");
+            case CHEER_SCARF -> stand.addCommandTag("ultrasmod_scarfwave");
+            default -> throw new IllegalArgumentException("Unknown cheer mode " + mode);
+        }
+
+        stand.setNoGravity(true);
+        stand.setVelocity(0.0, 0.0, 0.0);
+        stand.setPosition(stand.getX(), state.baseY, stand.getZ());
+
+        if (mode == CHEER_SCARF) {
+            ItemStack scarf = new ItemStack(SUPPORTER_SCARF);
+            stand.equipStack(EquipmentSlot.MAINHAND, scarf.copy());
+            stand.equipStack(EquipmentSlot.OFFHAND, scarf.copy());
+        } else {
+            stand.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+            stand.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+        }
+    }
+
+    private static double findGroundPosition(ServerWorld world, ArmorStandEntity stand) {
+        int x = net.minecraft.util.math.MathHelper.floor(stand.getX());
+        int z = net.minecraft.util.math.MathHelper.floor(stand.getZ());
+        int startY = net.minecraft.util.math.MathHelper.floor(stand.getY()) - 1;
+        int bottomY = Math.max(world.getBottomY(), startY - 512);
+        BlockPos.Mutable pos = new BlockPos.Mutable(x, startY, z);
+        for (int y = startY; y >= bottomY; y--) {
+            pos.set(x, y, z);
+            if (world.getBlockState(pos).isSolidBlock(world, pos)) return y + 1.0;
+        }
+        return stand.getY();
     }
 
     private static void tickActiveSupporters(ServerWorld world) {
-        Set<UUID> active = ACTIVE_SUPPORTERS.get(world);
+        Map<UUID, CheerState> active = ACTIVE_SUPPORTERS.get(world);
         if (active == null || active.isEmpty()) return;
 
         long time = world.getTime();
-        Iterator<UUID> iterator = active.iterator();
+        var iterator = active.entrySet().iterator();
         while (iterator.hasNext()) {
-            Entity entity = world.getEntity(iterator.next());
-            if (entity == null) continue; // Keep unloaded-entity UUIDs for chunk reloads.
-            if (!(entity instanceof ArmorStandEntity stand) || stand.isRemoved()) {
+            CheerState state = iterator.next().getValue();
+            ArmorStandEntity stand = state.stand;
+            if (stand.isRemoved() || stand.getWorld() != world) {
                 iterator.remove();
                 continue;
             }
 
-            if (stand.getCommandTags().contains("ultrasmod_jump")) {
-                // The standard player jump impulse; vanilla gravity handles the arc.
-                stand.setNoGravity(false);
-                if (stand.getVelocity().x != 0.0 || stand.getVelocity().z != 0.0) {
-                    stand.setVelocity(0.0, stand.getVelocity().y, 0.0);
-                }
-                if (stand.isOnGround() && stand.getVelocity().y <= 0.0) {
-                    stand.setVelocity(0.0, 0.42, 0.0);
-                }
-                continue;
+            // No gravity or carried velocity: every pose is derived from a fixed baseline.
+            stand.setNoGravity(true);
+            if (stand.getVelocity().lengthSquared() != 0.0) {
+                stand.setVelocity(0.0, 0.0, 0.0);
             }
 
-            stand.setNoGravity(true);
-            if (stand.getVelocity().lengthSquared() != 0.0) stand.setVelocity(0.0, 0.0, 0.0);
-            if (time % 2L != 0L) continue;
+            long elapsed = Math.max(0L, time - state.startedAt);
+            float wave = (float) Math.sin(elapsed * 0.42 + stand.getId() * 0.17);
 
-            float wave = (float) Math.sin((time + stand.getId() * 3L) * 0.42);
-            if (stand.getCommandTags().contains("ultrasmod_clap")) {
-                float close = wave * 0.30f;
-                stand.setLeftArmRotation(new EulerAngle(-1.20f, 0.0f, -0.25f + close));
-                stand.setRightArmRotation(new EulerAngle(-1.20f, 0.0f, 0.25f - close));
-            } else if (stand.getCommandTags().contains("ultrasmod_hands")) {
-                stand.setLeftArmRotation(new EulerAngle(-2.70f, 0.0f, -0.42f + wave * 0.18f));
-                stand.setRightArmRotation(new EulerAngle(-2.70f, 0.0f, 0.42f - wave * 0.18f));
-            } else if (stand.getCommandTags().contains("ultrasmod_scarfwave")) {
-                stand.setLeftArmRotation(new EulerAngle(-2.20f, 0.0f, -0.62f + wave * 0.22f));
-                stand.setRightArmRotation(new EulerAngle(-2.20f, 0.0f, 0.62f - wave * 0.22f));
+            switch (state.mode) {
+                case CHEER_JUMP -> {
+                    // Player-like jump: initial Y speed 0.42, gravity 0.08.
+                    // The 12-tick cycle explicitly returns to baseY before repeating.
+                    long phase = elapsed % 12L;
+                    double jumpHeight = Math.max(0.0, 0.42 * phase - 0.04 * phase * phase);
+                    stand.setPosition(stand.getX(), state.baseY + jumpHeight, stand.getZ());
+                    float armLift = -2.75f + wave * 0.08f;
+                    stand.setLeftArmRotation(new EulerAngle(armLift, 0.0f, -0.32f));
+                    stand.setRightArmRotation(new EulerAngle(armLift, 0.0f, 0.32f));
+                }
+                case CHEER_CLAP -> {
+                    stand.setPosition(stand.getX(), state.baseY, stand.getZ());
+                    // Bring both forearms together in front of the chest, then separate.
+                    float close = (float) (0.5 + 0.5 * Math.sin(elapsed * 0.85));
+                    float spread = 0.12f + close * 0.62f;
+                    stand.setLeftArmRotation(new EulerAngle(-1.52f, 0.0f, spread));
+                    stand.setRightArmRotation(new EulerAngle(-1.52f, 0.0f, -spread));
+                }
+                case CHEER_HANDS -> {
+                    stand.setPosition(stand.getX(), state.baseY, stand.getZ());
+                    // Both hands stay raised; the arms alternate outward and inward.
+                    stand.setLeftArmRotation(new EulerAngle(-2.78f, wave * 0.28f, -0.42f + wave * 0.22f));
+                    stand.setRightArmRotation(new EulerAngle(-2.78f, -wave * 0.28f, 0.42f - wave * 0.22f));
+                }
+                case CHEER_SCARF -> {
+                    stand.setPosition(stand.getX(), state.baseY, stand.getZ());
+                    stand.setLeftArmRotation(new EulerAngle(-2.55f, wave * 0.38f, -0.58f + wave * 0.25f));
+                    stand.setRightArmRotation(new EulerAngle(-2.55f, -wave * 0.38f, 0.58f - wave * 0.25f));
+                }
+                default -> {
+                    stand.setPosition(stand.getX(), state.baseY, stand.getZ());
+                    iterator.remove();
+                }
             }
         }
         if (active.isEmpty()) ACTIVE_SUPPORTERS.remove(world);
