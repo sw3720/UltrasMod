@@ -53,15 +53,15 @@ public class UltrasMod implements ModInitializer {
         private final ArmorStandEntity stand;
         private final double baseY;
         private int mode;
-        private long startedAt;
 
-        private CheerState(ArmorStandEntity stand, double baseY, int mode, long startedAt) {
+        private CheerState(ArmorStandEntity stand, double baseY, int mode) {
             this.stand = stand;
             this.baseY = baseY;
             this.mode = mode;
-            this.startedAt = startedAt;
         }
     }
+
+    private static final long JUMP_CYCLE_TICKS = 14L;
 
     // 깃발은 3×5칸, 걸개는 12×3칸으로 한 번에 펼쳐진다.
     public static final Block SUPPORTER_FLAG_BLOCK = registerCanvasBlock("supporter_flag",
@@ -211,11 +211,10 @@ public class UltrasMod implements ModInitializer {
             // Recover legacy v0.4.9 stands that may have been left floating above their installation point.
             double baseY = stand.getCommandTags().contains("ultrasmod_jump")
                     ? findGroundPosition(world, stand) : stand.getY();
-            state = new CheerState(stand, baseY, mode, world.getTime());
+            state = new CheerState(stand, baseY, mode);
             active.put(stand.getUuid(), state);
         } else {
             state.mode = mode;
-            state.startedAt = world.getTime();
         }
 
         stand.removeCommandTag("ultrasmod_cheering");
@@ -233,6 +232,8 @@ public class UltrasMod implements ModInitializer {
             default -> throw new IllegalArgumentException("Unknown cheer mode " + mode);
         }
 
+        // Every supporter uses explicit poses; gravity and residual velocity never affect timing.
+        stand.setShowArms(true);
         stand.setNoGravity(true);
         stand.setVelocity(0.0, 0.0, 0.0);
         stand.setPosition(stand.getX(), state.baseY, stand.getZ());
@@ -264,7 +265,13 @@ public class UltrasMod implements ModInitializer {
         Map<UUID, CheerState> active = ACTIVE_SUPPORTERS.get(world);
         if (active == null || active.isEmpty()) return;
 
+        // One world clock is shared by every supporter, including groups activated
+        // at different moments. No entity-id offsets or per-stand clocks are used.
         long time = world.getTime();
+        long jumpPhase = Math.floorMod(time, JUMP_CYCLE_TICKS);
+        float wave = (float) Math.sin(time * 0.38);
+        float clapCycle = (float) (0.5 - 0.5 * Math.cos(time * 0.70));
+
         var iterator = active.entrySet().iterator();
         while (iterator.hasNext()) {
             CheerState state = iterator.next().getValue();
@@ -274,44 +281,51 @@ public class UltrasMod implements ModInitializer {
                 continue;
             }
 
-            // No gravity or carried velocity: every pose is derived from a fixed baseline.
+            stand.setShowArms(true);
             stand.setNoGravity(true);
             if (stand.getVelocity().lengthSquared() != 0.0) {
                 stand.setVelocity(0.0, 0.0, 0.0);
             }
 
-            long elapsed = Math.max(0L, time - state.startedAt);
-            float wave = (float) Math.sin(elapsed * 0.42 + stand.getId() * 0.17);
-
             switch (state.mode) {
                 case CHEER_JUMP -> {
-                    // Player-like jump: initial Y speed 0.42, gravity 0.08.
-                    // The 12-tick cycle explicitly returns to baseY before repeating.
-                    long phase = elapsed % 12L;
-                    double jumpHeight = Math.max(0.0, 0.42 * phase - 0.04 * phase * phase);
+                    // All stands use the exact same world-time phase and displacement.
+                    // The curve approximates a normal player's ~0.42 initial jump,
+                    // with gravity-equivalent deceleration and a short grounded beat.
+                    double jumpHeight = Math.max(0.0,
+                            0.42 * jumpPhase - 0.04 * jumpPhase * jumpPhase);
                     stand.setPosition(stand.getX(), state.baseY + jumpHeight, stand.getZ());
-                    float armLift = -2.75f + wave * 0.08f;
-                    stand.setLeftArmRotation(new EulerAngle(armLift, 0.0f, -0.32f));
-                    stand.setRightArmRotation(new EulerAngle(armLift, 0.0f, 0.32f));
+
+                    float lift = (float) (150.0 + 10.0 * Math.sin(time * 0.38));
+                    stand.setLeftArmRotation(new EulerAngle(-8.0f, 0.0f, -lift));
+                    stand.setRightArmRotation(new EulerAngle(-8.0f, 0.0f, lift));
                 }
                 case CHEER_CLAP -> {
                     stand.setPosition(stand.getX(), state.baseY, stand.getZ());
-                    // Bring both forearms together in front of the chest, then separate.
-                    float close = (float) (0.5 + 0.5 * Math.sin(elapsed * 0.85));
-                    float spread = 0.12f + close * 0.62f;
-                    stand.setLeftArmRotation(new EulerAngle(-1.52f, 0.0f, spread));
-                    stand.setRightArmRotation(new EulerAngle(-1.52f, 0.0f, -spread));
+
+                    // Sweep the forearms inward to touch in front of the chest,
+                    // then outward again. EulerAngle values are DEGREES.
+                    float angle = 28.0f + clapCycle * 62.0f;
+                    stand.setLeftArmRotation(new EulerAngle(-18.0f, 0.0f, -angle));
+                    stand.setRightArmRotation(new EulerAngle(-18.0f, 0.0f, angle));
                 }
                 case CHEER_HANDS -> {
                     stand.setPosition(stand.getX(), state.baseY, stand.getZ());
-                    // Both hands stay raised; the arms alternate outward and inward.
-                    stand.setLeftArmRotation(new EulerAngle(-2.78f, wave * 0.28f, -0.42f + wave * 0.22f));
-                    stand.setRightArmRotation(new EulerAngle(-2.78f, -wave * 0.28f, 0.42f - wave * 0.22f));
+
+                    // Both arms are raised; small opposite yaw changes create a
+                    // clear synchronized left-right hand wave without moving the body.
+                    float yaw = wave * 20.0f;
+                    float roll = 155.0f + wave * 8.0f;
+                    stand.setLeftArmRotation(new EulerAngle(-8.0f, yaw, -roll));
+                    stand.setRightArmRotation(new EulerAngle(-8.0f, -yaw, roll));
                 }
                 case CHEER_SCARF -> {
                     stand.setPosition(stand.getX(), state.baseY, stand.getZ());
-                    stand.setLeftArmRotation(new EulerAngle(-2.55f, wave * 0.38f, -0.58f + wave * 0.25f));
-                    stand.setRightArmRotation(new EulerAngle(-2.55f, -wave * 0.38f, 0.58f - wave * 0.25f));
+
+                    float yaw = wave * 22.0f;
+                    float roll = 150.0f + wave * 10.0f;
+                    stand.setLeftArmRotation(new EulerAngle(-8.0f, yaw, -roll));
+                    stand.setRightArmRotation(new EulerAngle(-8.0f, -yaw, roll));
                 }
                 default -> {
                     stand.setPosition(stand.getX(), state.baseY, stand.getZ());
